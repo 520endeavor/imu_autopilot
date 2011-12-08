@@ -2,8 +2,8 @@ echo ***COPY build/obj/main.elf
 scp ./build/obj/main.elf pixhawk@192.168.1.82:/home/pixhawk/imu_firmware/
 
 
-echo ***RESET IMU px_messenger -r1
-ssh pixhawk@192.168.1.82 px_messenger -r1
+echo ***RESET IMU mavconn-messenger -r
+ssh pixhawk@192.168.1.82 mavconn-messenger -r
 
 echo ***UPLOAD imu_firmware/main.elf 
 ssh pixhawk@192.168.1.82 imu_firmware/lpc21iap imu_firmware/main.elf

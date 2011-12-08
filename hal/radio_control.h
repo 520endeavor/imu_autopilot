@@ -81,7 +81,7 @@ static inline uint16_t radio_control_get_channel_raw(unsigned int channel)
 
 static inline uint8_t radio_control_status(void)
 {
-	if((ppm_get_channel(1) < 1970))
+	if((ppm_get_channel(1) < 1970) && ppm_is_valid_check_and_touch() == 1)
 	{
 		return RADIO_CONTROL_ON;
 	}

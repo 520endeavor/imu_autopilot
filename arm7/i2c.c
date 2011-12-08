@@ -217,15 +217,20 @@ static void I2C1_ISR(void)
 		//  sprintf((char*)buffer, package_buffer1[i2c_package_buffer1_current_idx].slave_address) ;
 		//message_send_debug(COMM_1, buffer);
 		//		debug_message_buffer("i2c error limit reached");
-		debug_message_buffer_sprintf("i2c1 error limit reached. Dest: %i",
-				package_buffer1[i2c_package_buffer1_current_idx].slave_address);
-
-		if (i2c1_permanent_error_count++ % 256 == 0)
+		if (global_data.err_reporting_i2c)
 		{
-			debug_message_buffer_sprintf(
-					"i2c1 error limit reached. Total: %i errors.",
-					i2c1_permanent_error_count);
+			debug_message_buffer_sprintf("i2c1 error limit reached. Dest: %i",
 
+					package_buffer1[i2c_package_buffer1_current_idx].slave_address);
+
+
+			if (i2c1_permanent_error_count++ % 256 == 0)
+			{
+				debug_message_buffer_sprintf(
+						"i2c1 error limit reached. Total: %i errors.",
+						i2c1_permanent_error_count);
+
+			}
 		}
 
 		package_buffer1[i2c_package_buffer1_current_idx].i2c_error_code
@@ -540,14 +545,17 @@ static void I2C0_ISR(void)
 		//  sprintf((char*)buffer, package_buffer0[i2c_package_buffer0_current_idx].slave_address) ;
 		//message_send_debug(COMM_1, buffer);
 		//		debug_message_buffer("i2c error limit reached");
-		debug_message_buffer_sprintf("i2c0 error limit reached. Dest: %i",
-				package_buffer0[i2c_package_buffer0_current_idx].slave_address);
+//		if (error_counter0_permanent++ % 200 == 1) debug_message_buffer_sprintf("i2c0 error limit reached. (Modulo 200!) Dest: %i",
+//				package_buffer0[i2c_package_buffer0_current_idx].slave_address);
 
-		if (i2c0_permanent_error_count++ % 256 == 0)
+		if (global_data.err_reporting_i2c)
 		{
-			debug_message_buffer_sprintf(
-					"i2c0 error limit reached. Total: %i errors.",
-					i2c0_permanent_error_count);
+			if (i2c0_permanent_error_count++ % 256 == 0)
+			{
+				debug_message_buffer_sprintf(
+						"i2c0 error limit reached. Total: %i errors.",
+						i2c0_permanent_error_count);
+			}
 		}
 
 		package_buffer0[i2c_package_buffer0_current_idx].i2c_error_code
@@ -652,8 +660,8 @@ static void I2C0_ISR(void)
 			I2C0CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter0++;
 			//debug_message_buffer("I2C error: slave address not acknowledged (write)\n");
-			debug_message_buffer_sprintf(
-					"I2C0 error: slave address not acknowledged (write). Dest: %i",
+			if (error_counter0 % 200 == 0) debug_message_buffer_sprintf(
+					"I2C0 error: slave address not acknowledged (write) (200 times). Dest: %i",
 					package_buffer0[i2c_package_buffer0_current_idx].slave_address);
 
 			//message_send_debug(COMM_1, buffer);
@@ -746,8 +754,8 @@ static void I2C0_ISR(void)
 			I2C0CONSET = 1 << STO;
 			I2C0CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter0++;
-			debug_message_buffer_sprintf("I2C0 error: undefined I2C state: %i",I2C0STAT);
-			debug_message_buffer_sprintf("I2C0 error: prior state: %X",i2c0stat_prior_state);
+			if (error_counter0 % 200 == 0) debug_message_buffer_sprintf("I2C0 error: undefined I2C state: %i",I2C0STAT);
+			if (error_counter0 % 200 == 0) debug_message_buffer_sprintf("I2C0 error: prior state: %X",i2c0stat_prior_state);
 			//		message_send_debug(COMM_1, buffer);
 			I2C0CONCLR = 1 << SIC;
 		}

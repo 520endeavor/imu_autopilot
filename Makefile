@@ -206,8 +206,8 @@ upload-mac: $(OBJDIR)/$(TARGET).elf bootloader
 	@echo ***UPLOAD $(OBJDIR)/$(TARGET).elf
 	$(LPC21IAP-MAC32) $(OBJDIR)/$(TARGET).elf
 
-upload-remote: $(OBJDIR)/$(TARGET).elf bootloader 
-	$(Q)$(TOOLS)/upload_remote.sh
+upload-remote-alpha: $(OBJDIR)/$(TARGET).elf bootloader 
+	$(Q)$(TOOLS)/upload_remote_alpha.sh
 	
 upload-remote-bravo: $(OBJDIR)/$(TARGET).elf bootloader 
 	$(Q)$(TOOLS)/upload_remote_bravo.sh

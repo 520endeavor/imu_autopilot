@@ -390,7 +390,9 @@ void handle_mavlink_message(mavlink_channel_t chan,
 	break;
 	case MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL:
 	{
+		mavlink_image_trigger_control_t trigger;
 		uint8_t enable = mavlink_msg_image_trigger_control_get_enable(msg);
+
 		shutter_control(enable);
 		if (enable)
 		{

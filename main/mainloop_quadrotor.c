@@ -32,6 +32,7 @@ extern mavlink_system_t mavlink_system;
 #include "sys_time.h"
 #include "uart.h"
 #include "dac.h"
+#include "buzzer.h"
 
 #include "watchdog.h"
 #include "control.h"
@@ -119,7 +120,7 @@ void main_init_generic(void)
 	enableIRQ();
 	led_init();
 	led_on(LED_GREEN);
-//	buzzer_init();
+	buzzer_init();
 	sys_time_init();
 	sys_time_periodic_init();
 	sys_time_clock_init();
@@ -226,7 +227,6 @@ void main_init_generic(void)
 	servos_init();
 
 	//position_kalman3_init();
-	//	buzzer_init();
 
 	// Calibration starts (this can take a few seconds)
 	//	led_on(LED_GREEN);
@@ -271,7 +271,10 @@ void main_init_generic(void)
 	send_system_state();
 
 	debug_message_buffer("Checking if remote control is switched on:");
-	if (radio_control_status() == RADIO_CONTROL_ON)
+	// Initialize remote control status
+	remote_control();
+	remote_control();
+	if (radio_control_status() == RADIO_CONTROL_ON && global_data.state.remote_ok)
 	{
 		global_data.state.mav_mode = MAV_MODE_FLAG_MANUAL_INPUT_ENABLED | MAV_MODE_FLAG_TEST_ENABLED;
 		debug_message_buffer("RESULT: remote control switched ON");
@@ -426,7 +429,13 @@ void main_loop_quadrotor(void)
 			global_data.sonar_distance /= supersampling;
 
 			opt_int.z = valid;
-			mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], loop_start_time + sys_time_clock_get_unix_offset(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
+			static unsigned int i = 0;
+			if (i == 10)
+			{
+				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], loop_start_time + sys_time_clock_get_unix_offset(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
+				i++;
+				i = 0;
+			}
 			//optical_flow_debug_vect_send();
 			//debug_vect("opt_int", opt_int);
 			optical_flow_start_read(80);
@@ -565,7 +574,7 @@ void main_loop_quadrotor(void)
 			send_system_state();
 
 			// Send position setpoint offset
-			debug_vect("pos offs", global_data.position_setpoint_offset);
+			//debug_vect("pos offs", global_data.position_setpoint_offset);
 
 			// Send current onboard time
 			mavlink_msg_system_time_send(MAVLINK_COMM_1, 0,
@@ -637,12 +646,12 @@ void main_loop_quadrotor(void)
 			// Send parameter
 			communication_queued_send();
 
-			//infrared distance
-			float_vect3 infra;
-			infra.x = global_data.ground_distance;
-			infra.y = global_data.ground_distance_unfiltered;
-			infra.z = global_data.state.ground_distance_ok;
-			debug_vect("infrared", infra);
+//			//infrared distance
+//			float_vect3 infra;
+//			infra.x = global_data.ground_distance;
+//			infra.y = global_data.ground_distance_unfiltered;
+//			infra.z = global_data.state.ground_distance_ok;
+//			debug_vect("infrared", infra);
 		}
 		///////////////////////////////////////////////////////////////////////////
 

@@ -50,8 +50,6 @@
 #include "sys_state.h"
 #include "calibration.h"
 
-
-
 inline void remote_control(void)
 {
 	static uint32_t lossCounter = 0;
@@ -60,7 +58,7 @@ inline void remote_control(void)
 		if (radio_control_status() == RADIO_CONTROL_ON)
 		{
 			global_data.state.remote_ok=1;
-			if (lossCounter > 0)
+			if (lossCounter > 3)
 			{
 				debug_message_buffer("REGAINED REMOTE SIGNAL AFTER LOSS!");
 			}
@@ -333,14 +331,11 @@ inline void remote_control(void)
 			//No Remote signal
 			lossCounter++;
 
-			if (global_data.state.remote_ok == 1)
+			if (lossCounter > 3 && global_data.state.remote_ok == 1)
 			{
+				debug_message_buffer("WARNING! NO REMOTE SIGNAL!");
 				//Wait one round and start sinking
 				global_data.state.remote_ok = 0;
-				debug_message_buffer("No remote signal (1st time)");
-			}
-			else
-			{
 				static uint16_t countdown;
 				//already the second time
 				// Emergency Landing
@@ -378,8 +373,7 @@ inline void remote_control(void)
 					else
 					{
 						//won't come here anymore if once in locked mode
-						debug_message_buffer(
-								"EMERGENCY LANDING. No remote signal");
+						debug_message_buffer("EMERGENCY LANDING. No remote signal");
 
 					}
 				}

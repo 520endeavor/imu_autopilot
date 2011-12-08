@@ -360,6 +360,7 @@ void sync_state_parameters(void){
 	global_data.state.gps_mode=global_data.param[PARAM_GPS_MODE];
 	global_data.state.yaw_estimation_mode = global_data.param[PARAM_ATT_KAL_YAW_ESTIMATION_MODE];
 	global_data.state.position_estimation_mode = global_data.param[PARAM_POSITION_ESTIMATION_MODE];
+	global_data.err_reporting_i2c = global_data.param[PARAM_I2C_ERR_REPORTING_ENABLED];
 
 	if (global_data.state.position_estimation_mode != POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_ADD_VICON_AS_OFFSET)
 	{

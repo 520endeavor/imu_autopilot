@@ -35,6 +35,7 @@
 #include "conf.h"
 
 int ppm_valid;
+uint64_t ppm_lastvalid;
 
 int ppm_pulses[PPM_NB_CHANNEL];
 
@@ -44,6 +45,14 @@ int ppm_pulses[PPM_NB_CHANNEL];
 int ppm_is_valid(void)
 {
 	return ppm_valid;
+}
+
+int ppm_is_valid_check_and_touch(void)
+{
+	static uint64_t time = 0;
+	int status = (time != ppm_lastvalid);
+	time = ppm_lastvalid;
+	return status;
 }
 
 /**
@@ -74,6 +83,7 @@ void ppm_init(void)
 	}
 	ppm_pulses[2]=SYS_TICS_OF_USEC(1000);
 	ppm_valid = 0;
+	ppm_lastvalid = 1;
 }
 
 void PPM_ISR()
@@ -100,6 +110,7 @@ void PPM_ISR()
 			if (state == PPM_NB_CHANNEL) {
 	  			ppm_valid = 1;
 			}
+			ppm_lastvalid = PPM_CAPTURE_CAPTURE_REGISTER;
     	}
       	else{
 			state = PPM_NB_CHANNEL;

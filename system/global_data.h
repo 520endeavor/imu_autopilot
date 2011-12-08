@@ -193,6 +193,7 @@ enum
 	PARAM_SONAR_MODE,
 	PARAM_SONAR_SCALE,
 	PARAM_POSITION_HOVER_THRUST,
+	PARAM_I2C_ERR_REPORTING_ENABLED,
 
 	ONBOARD_PARAM_COUNT
 ///< Store parameters in EEPROM and expose them over MAVLink paramter interface
@@ -420,6 +421,7 @@ struct global_struct
 	uint16_t rc_chan_cal_min[9];
 	uint16_t rc_chan_cal_center[9];
 	uint16_t rc_chan_cal_max[9];
+	bool err_reporting_i2c;
 
 };
 
@@ -734,6 +736,9 @@ static inline void global_data_reset_param_defaults(void){
 	strcpy(global_data.param_name[PARAM_SONAR_SCALE], "POS_SON_SCALE");
 	strcpy(global_data.param_name[PARAM_POSITION_HOVER_THRUST], "POS_HOV_TRUST");
 
+	global_data.param[PARAM_I2C_ERR_REPORTING_ENABLED] = 0;
+	strcpy(global_data.param_name[PARAM_I2C_ERR_REPORTING_ENABLED], "REP_I2C_ERR");
+
 	global_data.param[PARAM_IMU_RESET] = 0;
 	strcpy(global_data.param_name[PARAM_IMU_RESET], "SYS_IMU_RESET");
 
@@ -749,6 +754,7 @@ static inline void global_data_reset(void)
 	global_data.cpu_usage = 0;
 	global_data.cpu_peak = 0;
 	global_data.rc_rssi = 0;
+	global_data.err_reporting_i2c = 0;
 
 	global_data.state.vision_ok=0;
 	global_data.state.vicon_ok=0;
