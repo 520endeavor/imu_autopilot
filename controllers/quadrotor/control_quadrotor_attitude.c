@@ -175,8 +175,9 @@ inline void control_quadrotor_attitude()
 	{
 		motor_thrust = quadrotor_start_land_motor_thrust();
 	}
-	else if (((global_data.state.mav_mode & (uint8_t) MAV_MODE_FLAG_TEST_ENABLED)
+	else if ((((global_data.state.mav_mode & (uint8_t) MAV_MODE_FLAG_TEST_ENABLED)
 					&& global_data.param[PARAM_MIX_POSITION_Z_WEIGHT] == 0)
+					|| (global_data.state.mav_mode & (uint8_t) MAV_MODE_FLAG_MANUAL_INPUT_ENABLED))
 		&& (global_data.state.mav_mode & (uint8_t) MAV_MODE_FLAG_SAFETY_ARMED))
 	{
 		motor_thrust = global_data.gas_remote;
@@ -222,55 +223,8 @@ inline void control_quadrotor_attitude()
 		// NO VALID MODE, LOCK DOWN TO ZERO
 		motor_thrust = 0;
 		// Message will flood buffer at 200 Hz, which is fine as it it critical
-//		debug_message_buffer("ERROR: NO VALID MODE, THRUST LIMITED TO 0%");
+		debug_message_buffer("ERROR: NO VALID MODE, THRUST LIMITED TO 0%");
 	}
-// OLD CODE from AMIR and ANDY
-//	// GUIDED AND AUTO MODES
-//	if (global_data.mode == (uint8_t)MAV_MODE_GUIDED || global_data.mode == (uint8_t)MAV_MODE_AUTO)
-//	{
-//
-//		if (global_data.waiting_over == true)
-//		{
-//			if (global_data.ramp_up == true)
-//			{
-//				global_data.thrust_hover_offset += global_data.thrust_calibration_increment;
-//				// check limit:
-//				if (global_data.thrust_hover_offset > 0.65)
-//				{
-//					global_data.thrust_hover_offset = 0.65;
-//					global_data.ramp_up = false;
-//				}
-//			}
-//			motor_thrust = (global_data.thrust_hover_offset + global_data.position_control_output.z);
-//			global_data.motor_thrust_actual=motor_thrust;
-//
-//			//Security: thrust never higher than remote control
-//			if (motor_thrust > global_data.gas_remote)
-//			{
-//				motor_thrust = global_data.gas_remote;
-//			}
-//		}
-//	}
-//	else if (global_data.mode == (uint8_t)MAV_MODE_MANUAL)
-//	{
-////		if (global_data.waiting_over == true)
-////				{
-//				// MANUAL MODE
-//				motor_thrust = global_data.gas_remote;
-////				}
-//	}
-//	else if (global_data.mode == (uint8_t)MAV_MODE_LOCKED)
-//	{
-//		// LOCKED MODE
-//		motor_thrust = 0;
-//	}
-//	else
-//	{
-//		// NO VALID MODE, LOCK DOWN TO ZERO
-//		motor_thrust = 0;
-//		// Message will flood buffer at 200 Hz, which is fine as it it critical
-//		debug_message_buffer("ERROR: NO VALID MODE, THRUST LIMITED TO 0%");
-//	}
 
 	// Convertion to motor-step units
 	motor_thrust *= zcompensation;

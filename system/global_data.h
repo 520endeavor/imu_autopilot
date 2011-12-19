@@ -811,11 +811,11 @@ static inline void global_data_reset(void)
 	global_data.vicon_magnetometer_replacement.z = 0;
 
 	//safe corridor
-	global_data.position_setpoint_min.x=-20;
-	global_data.position_setpoint_min.y=-20;
-	global_data.position_setpoint_min.z=-1.6;
-	global_data.position_setpoint_max.x=20;
-	global_data.position_setpoint_max.y=20;
+	global_data.position_setpoint_min.x=-2.0f;
+	global_data.position_setpoint_min.y=-0.8f;
+	global_data.position_setpoint_min.z=-1.0f;
+	global_data.position_setpoint_max.x=2;
+	global_data.position_setpoint_max.y=0.8;
 	global_data.position_setpoint_max.z=0;
 
 	global_data.position_setpoint_offset.x = 0;

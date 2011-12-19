@@ -433,9 +433,10 @@ void main_loop_quadrotor(void)
 			if (i == 10)
 			{
 				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], loop_start_time + sys_time_clock_get_unix_offset(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
-				i++;
+
 				i = 0;
 			}
+			i++;
 			//optical_flow_debug_vect_send();
 			//debug_vect("opt_int", opt_int);
 			optical_flow_start_read(80);
