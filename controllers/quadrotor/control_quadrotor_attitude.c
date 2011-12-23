@@ -379,13 +379,13 @@ inline void control_quadrotor_attitude()
 			//			//	message_debug_send(MAVLINK_COMM_1, 28, global_data.gyros_si.y);
 			//			//	message_debug_send(MAVLINK_COMM_1, 27, global_data.gyros_si.z);
 
-			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0, 16,
+			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 16,
 					motor_pwm[0]);
-			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0, 17,
+			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 17,
 					motor_pwm[1]);
-			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0, 18,
+			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 18,
 					motor_pwm[2]);
-			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0, 19,
+			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 19,
 					motor_pwm[3]);
 //			mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 20,
 //					motor_thrust);

@@ -51,6 +51,7 @@ void timer0_init( void );
 uint8_t periodic_state;
 uint32_t number_of_timer_overflow=0;
 int64_t m_clock_offset=0;
+int64_t loop_start_time=0;
 
 void TIMER0_ISR ( void )  {
   ISR_ENTRY();
@@ -177,6 +178,7 @@ void sys_time_clock_init(void)
 	T0MR3 = 0;
 	m_clock_offset = 0;
 	number_of_timer_overflow = 0;
+	loop_start_time=0;
 }
 
 uint64_t sys_time_clock_get_time_usec(void)
@@ -203,3 +205,20 @@ uint64_t sys_time_clock_to_local_time(uint64_t unix_time)
 {
 	return unix_time - m_clock_offset;
 }
+
+uint64_t sys_time_clock_set_loop_start_time(void)
+{
+	loop_start_time = sys_time_clock_get_time_usec();
+	return loop_start_time;
+}
+
+uint64_t sys_time_clock_get_unix_loop_start_time(void)
+{
+	return loop_start_time + m_clock_offset;
+}
+
+uint32_t sys_time_clock_get_loop_start_time_boot_ms(void)
+{
+	return (loop_start_time + m_clock_offset)/1000;
+}
+

@@ -159,7 +159,7 @@ void communication_send_raw_data(uint64_t loop_start_time)
 
 		mavlink_msg_raw_imu_send(
 				global_data.param[PARAM_SEND_DEBUGCHAN],
-				sys_time_clock_get_unix_offset() + loop_start_time,
+				sys_time_clock_get_unix_loop_start_time(),
 				global_data.accel_raw.x, global_data.accel_raw.y,
 				global_data.accel_raw.z, global_data.gyros_raw.x,
 				global_data.gyros_raw.y, global_data.gyros_raw.z,
@@ -167,7 +167,7 @@ void communication_send_raw_data(uint64_t loop_start_time)
 				global_data.magnet_raw.y,
 				global_data.magnet_raw.z);
 		mavlink_msg_raw_pressure_send(global_data.param[PARAM_SEND_DEBUGCHAN],
-				sys_time_clock_get_unix_offset() + loop_start_time,
+				sys_time_clock_get_unix_loop_start_time(),
 				global_data.pressure_raw, 0, 0, global_data.temperature);
 	}
 }
@@ -179,19 +179,19 @@ void communication_send_attitude_position(uint64_t loop_start_time)
 	{
 		// Send attitude over both UART ports
 		mavlink_msg_attitude_send(global_data.param[PARAM_SEND_DEBUGCHAN],
-				sys_time_clock_get_unix_offset() + loop_start_time,
+				sys_time_clock_get_loop_start_time_boot_ms(),
 				global_data.attitude.x, global_data.attitude.y,
 				global_data.attitude.z, global_data.attitude_rate.x,
 				global_data.attitude_rate.y, global_data.attitude_rate.z);
 
 /*		mavlink_msg_attitude_send(global_data.param[PARAM_SEND_DEBUGCHAN],
-				sys_time_clock_get_unix_offset() + loop_start_time,
+				sys_time_clock_get_loop_start_time_boot_ms(),
 				global_data.attitude.x, global_data.attitude.y,
 				global_data.attitude.z, global_data.gyros_si.x,
 				global_data.gyros_si.y, global_data.gyros_si.z);
 
 			mavlink_msg_attitude_send(MAVLINK_COMM_1,
-				sys_time_clock_get_unix_offset() + loop_start_time,
+				sys_time_clock_get_loop_start_time_boot_ms(),
 				global_data.attitude.x, global_data.attitude.y,
 				global_data.attitude.z, global_data.gyros_si.x,
 				global_data.gyros_si.y, global_data.gyros_si.z);*/
@@ -200,7 +200,7 @@ void communication_send_attitude_position(uint64_t loop_start_time)
 	if (global_data.param[PARAM_SEND_SLOT_DEBUG_5] == 1)
 	{
 		// Send current position and speed
-		mavlink_msg_local_position_ned_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_offset() + loop_start_time,
+		mavlink_msg_local_position_ned_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_loop_start_time_boot_ms(),
 				global_data.position.x, global_data.position.y,
 				global_data.position.z, global_data.velocity.x,
 				global_data.velocity.y, global_data.velocity.z);
@@ -216,7 +216,7 @@ void communication_send_remote_control(void)
 {
 	if (global_data.param[PARAM_SEND_SLOT_REMOTE_CONTROL] == 1)
 	{
-		mavlink_msg_rc_channels_raw_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0, 0,
+		mavlink_msg_rc_channels_raw_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_loop_start_time_boot_ms(), 0,
 				radio_control_get_channel_raw(1),
 				radio_control_get_channel_raw(2),
 				radio_control_get_channel_raw(3),
@@ -622,12 +622,11 @@ void camera_shutter_handling(uint64_t loop_start_time)
 	bool camera_triggered = shutter_loop();
 	if (camera_triggered)
 	{
-		uint64_t usec = sys_time_clock_get_unix_offset() + loop_start_time;
-		vision_buffer_buffer_camera_triggered(usec, loop_start_time,
+		vision_buffer_buffer_camera_triggered(sys_time_clock_get_unix_loop_start_time(), loop_start_time,
 				shutter_get_seq());
 
 		// Emit timestamp of this image
-		mavlink_msg_image_triggered_send(MAVLINK_COMM_0, usec,
+		mavlink_msg_image_triggered_send(MAVLINK_COMM_0, sys_time_clock_get_unix_loop_start_time(),
 				shutter_get_seq(), global_data.attitude.x,
 				global_data.attitude.y, global_data.attitude.z, global_data.ground_distance, global_data.position.y, global_data.position.x, global_data.position.z, global_data.vicon_data.x, global_data.vicon_data.y, global_data.vicon_data.z);
 	}

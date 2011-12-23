@@ -189,6 +189,6 @@ void debug_vect(const char* string, const float_vect3 vect)
 	strncpy(name, string, DEBUG_VECT_NAME_MAX_LEN - 1);
 	name[DEBUG_VECT_NAME_MAX_LEN - 1] = '\0';
 	mavlink_msg_debug_vect_send(global_data.param[PARAM_SEND_DEBUGCHAN],
-			(char*) name, sys_time_clock_get_unix_time(), vect.x, vect.y,
+			(char*) name, sys_time_clock_get_unix_loop_start_time(), vect.x, vect.y,
 			vect.z);
 }

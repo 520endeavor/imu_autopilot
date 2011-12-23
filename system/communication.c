@@ -458,7 +458,7 @@ void handle_mavlink_message(mavlink_channel_t chan,
 
 		//send the vicon message to UART0 with new timestamp, but only if the message was not received over UART0 (otherwise we'll have message echoing)
 		if (chan != MAVLINK_COMM_0)
-			mavlink_msg_vicon_position_estimate_send(MAVLINK_COMM_0, sys_time_clock_get_unix_time(), pos.x, pos.y, pos.z, pos.roll, pos.pitch, pos.yaw);
+			mavlink_msg_vicon_position_estimate_send(MAVLINK_COMM_0, sys_time_clock_get_unix_loop_start_time(), pos.x, pos.y, pos.z, pos.roll, pos.pitch, pos.yaw);
 
 	}
 	break;
@@ -691,7 +691,7 @@ void communication_receive(void)
 
 //					mavlink_msg_gps_raw_send(
 //							global_data.param[PARAM_SEND_DEBUGCHAN],
-//							sys_time_clock_get_unix_time(), gps_mode, gps_lat
+//							sys_time_clock_get_unix_loop_start_time(), gps_mode, gps_lat
 //									/ 1e7f, gps_lon / 1e7f, gps_alt / 100.0f,
 //							0.0f, 0.0f, gps_gspeed / 100.0f, gps_course / 10.0f);
 				}

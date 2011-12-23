@@ -329,7 +329,7 @@ void main_loop_quadrotor(void)
 	while (1)
 	{
 		// Time Measurement
-		uint64_t loop_start_time = sys_time_clock_get_time_usec();
+		uint64_t loop_start_time = sys_time_clock_set_loop_start_time(); // loop_start_time should not be used anymore
 
 		///////////////////////////////////////////////////////////////////////////
 		/// CRITICAL 200 Hz functions
@@ -432,7 +432,7 @@ void main_loop_quadrotor(void)
 			static unsigned int i = 0;
 			if (i == 10)
 			{
-				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], loop_start_time + sys_time_clock_get_unix_offset(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
+				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
 
 				i = 0;
 			}
@@ -492,7 +492,7 @@ void main_loop_quadrotor(void)
 
 			mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(
 					global_data.param[PARAM_SEND_DEBUGCHAN],
-					loop_start_time + sys_time_clock_get_unix_offset(),
+					sys_time_clock_get_loop_start_time_boot_ms(),
 					global_data.attitude_setpoint.x,
 					global_data.attitude_setpoint.y,
 					global_data.position_yaw_control_output,
@@ -578,8 +578,8 @@ void main_loop_quadrotor(void)
 			//debug_vect("pos offs", global_data.position_setpoint_offset);
 
 			// Send current onboard time
-			mavlink_msg_system_time_send(MAVLINK_COMM_1, 0,
-					sys_time_clock_get_unix_time());
+			mavlink_msg_system_time_send(MAVLINK_COMM_1, sys_time_clock_get_unix_loop_start_time(),sys_time_clock_get_loop_start_time_boot_ms());
+			mavlink_msg_system_time_send(MAVLINK_COMM_0, sys_time_clock_get_unix_loop_start_time(),sys_time_clock_get_loop_start_time_boot_ms());
 
 			//update state from received parameters
 			sync_state_parameters();

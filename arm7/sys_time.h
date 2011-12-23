@@ -70,6 +70,14 @@ uint64_t sys_time_clock_get_unix_time(void);
 /** @brief Convert a timestamp in UNIX epoch usecs to local onboard time */
 uint64_t sys_time_clock_to_local_time(uint64_t unix_time);
 
+/** @brief Save Loop Start time usecs in local onboard time */
+uint64_t sys_time_clock_set_loop_start_time(void);
+
+/** @brief Convert Loop Start time as timestamp in UNIX epoch usecs */
+uint64_t sys_time_clock_get_unix_loop_start_time(void);
+
+/** @brief Convert Loop Start time as timestamp in UNIX epoch msecs */
+uint32_t sys_time_clock_get_loop_start_time_boot_ms(void);
 
 static inline uint32_t sys_time_get_period_start_time(void){
 	uint32_t time = T0MR2-PERIODIC_TASK_PERIOD;
