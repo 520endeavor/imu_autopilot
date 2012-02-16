@@ -169,18 +169,21 @@ void i2c1_op(i2c_package * package)
 
 //		debug_message_buffer_sprintf(
 //			"i2c I2C1STAT is: %i.",
-//			I2C1STAT);
+		//			I2C1STAT);
 
-		debug_message_buffer_sprintf("*****Restarted I2C1*** I2C1STAT=%i",I2C1STAT);
-//END HACK
-
-		if (i2c1_reject_count++ % 256 == 0)
+		if (global_data.err_reporting_i2c)
 		{
-			debug_message_buffer_sprintf(
-					"i2c1 buffer full. Rejected package. Total: %i",
-					i2c1_reject_count);
+			debug_message_buffer_sprintf("*****Restarted I2C1*** I2C1STAT=%i",I2C1STAT);
+			//END HACK
+
+			if (i2c1_reject_count++ % 256 == 0)
+			{
+				debug_message_buffer_sprintf(
+						"i2c1 buffer full. Rejected package. Total: %i",
+						i2c1_reject_count);
 
 
+			}
 		}
 		return;
 	}
@@ -340,9 +343,12 @@ static void I2C1_ISR(void)
 			I2C1CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter1++;
 			//debug_message_buffer("I2C error: slave address not acknowledged (write)\n");
+			if (global_data.err_reporting_i2c)
+					{
 			debug_message_buffer_sprintf(
 					"I2C1 error: slave addr not ack (write). Dest: %i",
 					package_buffer1[i2c_package_buffer1_current_idx].slave_address);
+					}
 
 			//message_send_debug(COMM_1, buffer);
 			I2C1CONCLR = 1 << SIC;
@@ -353,9 +359,12 @@ static void I2C1_ISR(void)
 			I2C1CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter1++;
 			//		debug_message_buffer("I2C error: data not acknowledged\n");
+			if (global_data.err_reporting_i2c)
+					{
 			debug_message_buffer_sprintf(
 					"I2C1 error: data not acknowledged. Dest: %i",
 					package_buffer1[i2c_package_buffer1_current_idx].slave_address);
+					}
 
 			//message_send_debug(COMM_1, buffer);
 			I2C1CONCLR = 1 << SIC;
@@ -365,9 +374,12 @@ static void I2C1_ISR(void)
 			I2C1CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter1++;
 			//		debug_message_buffer("I2C error: arbitration lost\n");
+			if (global_data.err_reporting_i2c)
+					{
 			debug_message_buffer_sprintf(
 					"I2C1 error: arbitration lost. Dest: %i",
 					package_buffer1[i2c_package_buffer1_current_idx].slave_address);
+					}
 
 			//message_send_debug(COMM_1, buffer);
 			I2C1CONCLR = 1 << SIC;
@@ -430,8 +442,11 @@ static void I2C1_ISR(void)
 			I2C1CONSET = 1 << STO;
 			I2C1CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter1++;
+			if (global_data.err_reporting_i2c)
+					{
 			debug_message_buffer(
 					"I2C1 error: slave address not acknowledged (read)\n");
+					}
 			//message_send_debug(COMM_1, buffer);
 			I2C1CONCLR = 1 << SIC;
 			break;
@@ -440,8 +455,11 @@ static void I2C1_ISR(void)
 			I2C1CONSET = 1 << STO;
 			I2C1CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter1++;
+			if (global_data.err_reporting_i2c)
+					{
 			debug_message_buffer_sprintf("I2C1 error: undefined I2C state: %i",I2C1STAT);
 			debug_message_buffer_sprintf("I2C1 error: prior state: %X",i2c1stat_prior_state);
+					}
 			//		message_send_debug(COMM_1, buffer);
 			I2C1CONCLR = 1 << SIC;
 		}
@@ -501,6 +519,8 @@ void i2c0_op(i2c_package * package)
 		//			"i2c I2C0STAT is: %i.",
 		//			I2C1STAT);
 
+				if (global_data.err_reporting_i2c)
+						{
 				debug_message_buffer_sprintf("*****Restarted I2C0*** I2C0STAT=%i",I2C0STAT);
 		//END HACK
 
@@ -510,6 +530,7 @@ void i2c0_op(i2c_package * package)
 					"i2c0 buffer full. Rejected package. Total: %i",
 					i2c0_reject_count);
 		}
+						}
 		return;
 	}
 
@@ -660,9 +681,12 @@ static void I2C0_ISR(void)
 			I2C0CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter0++;
 			//debug_message_buffer("I2C error: slave address not acknowledged (write)\n");
+			if (global_data.err_reporting_i2c)
+					{
 			if (error_counter0 % 200 == 0) debug_message_buffer_sprintf(
 					"I2C0 error: slave address not acknowledged (write) (200 times). Dest: %i",
 					package_buffer0[i2c_package_buffer0_current_idx].slave_address);
+					}
 
 			//message_send_debug(COMM_1, buffer);
 			I2C0CONCLR = 1 << SIC;
@@ -672,9 +696,12 @@ static void I2C0_ISR(void)
 			I2C0CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter0++;
 			//		debug_message_buffer("I2C error: data not acknowledged\n");
+			if (global_data.err_reporting_i2c)
+					{
 			debug_message_buffer_sprintf(
 					"I2C0 error: data not acknowledged. Dest: %i",
 					package_buffer0[i2c_package_buffer0_current_idx].slave_address);
+					}
 
 			//message_send_debug(COMM_1, buffer);
 			I2C0CONCLR = 1 << SIC;
@@ -744,8 +771,11 @@ static void I2C0_ISR(void)
 			I2C0CONSET = 1 << STO;
 			I2C0CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter0++;
+			if (global_data.err_reporting_i2c)
+					{
 			debug_message_buffer(
 					"I2C0 error: slave address not acknowledged (read)\n");
+					}
 			//message_send_debug(COMM_1, buffer);
 			I2C0CONCLR = 1 << SIC;
 			break;
@@ -754,8 +784,11 @@ static void I2C0_ISR(void)
 			I2C0CONSET = 1 << STO;
 			I2C0CONSET = 1 << STA; // restart I2C state machine with current package
 			error_counter0++;
+			if (global_data.err_reporting_i2c)
+					{
 			if (error_counter0 % 200 == 0) debug_message_buffer_sprintf("I2C0 error: undefined I2C state: %i",I2C0STAT);
 			if (error_counter0 % 200 == 0) debug_message_buffer_sprintf("I2C0 error: prior state: %X",i2c0stat_prior_state);
+					}
 			//		message_send_debug(COMM_1, buffer);
 			I2C0CONCLR = 1 << SIC;
 		}
