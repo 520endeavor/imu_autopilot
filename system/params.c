@@ -18,7 +18,7 @@
 //		int16_t s;
 //	} generic_32bit;
 
-#define EEPROM_PARAM_CHECK_VALUE 1123456789
+#define EEPROM_PARAM_CHECK_VALUE 1123456798
 static uint8_t param_handler_step = 0;
 static int32_t param_handler_counter = 0;
 uint8_t param_sizecheck = 255;

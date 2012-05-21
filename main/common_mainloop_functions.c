@@ -163,9 +163,9 @@ void communication_send_raw_data(uint64_t loop_start_time)
 				global_data.accel_raw.x, global_data.accel_raw.y,
 				global_data.accel_raw.z, global_data.gyros_raw.x,
 				global_data.gyros_raw.y, global_data.gyros_raw.z,
-				global_data.magnet_raw.x,
-				global_data.magnet_raw.y,
-				global_data.magnet_raw.z);
+				global_data.magnet_corrected.x,
+				global_data.magnet_corrected.y,
+				global_data.magnet_corrected.z);
 		mavlink_msg_raw_pressure_send(global_data.param[PARAM_SEND_DEBUGCHAN],
 				sys_time_clock_get_unix_loop_start_time(),
 				global_data.pressure_raw, 0, 0, global_data.temperature);

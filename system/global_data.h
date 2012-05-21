@@ -194,6 +194,7 @@ enum
 	PARAM_SONAR_SCALE,
 	PARAM_POSITION_HOVER_THRUST,
 	PARAM_I2C_ERR_REPORTING_ENABLED,
+	PARAM_SKYE_SENSOR_INTERVAL_US,
 
 	ONBOARD_PARAM_COUNT
 ///< Store parameters in EEPROM and expose them over MAVLink paramter interface
@@ -738,6 +739,8 @@ static inline void global_data_reset_param_defaults(void){
 
 	global_data.param[PARAM_I2C_ERR_REPORTING_ENABLED] = 0;
 	strcpy(global_data.param_name[PARAM_I2C_ERR_REPORTING_ENABLED], "REP_I2C_ERR");
+	global_data.param[PARAM_SKYE_SENSOR_INTERVAL_US] = 20000;
+	strcpy(global_data.param_name[PARAM_SKYE_SENSOR_INTERVAL_US], "SKYE_SENS_INT");
 
 	global_data.param[PARAM_IMU_RESET] = 0;
 	strcpy(global_data.param_name[PARAM_IMU_RESET], "SYS_IMU_RESET");

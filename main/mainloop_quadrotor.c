@@ -326,6 +326,13 @@ void main_loop_quadrotor(void)
 
 	led_off(LED_GREEN);
 	led_off(LED_RED);
+
+	unsigned int skye_run_interval = global_data.param[PARAM_SKYE_SENSOR_INTERVAL_US];
+	if (skye_run_interval < 5000 || skye_run_interval > 100000)
+	{
+		skye_run_interval = 20000;
+	}
+
 	while (1)
 	{
 		// Time Measurement
@@ -334,7 +341,7 @@ void main_loop_quadrotor(void)
 		///////////////////////////////////////////////////////////////////////////
 		/// CRITICAL 200 Hz functions
 		///////////////////////////////////////////////////////////////////////////
-		if (us_run_every(5000, COUNTER2, loop_start_time))
+		if (us_run_every(skye_run_interval, COUNTER2, loop_start_time))
 		{
 			// Kalman Attitude filter, used on all systems
 			gyro_read();
@@ -350,30 +357,31 @@ void main_loop_quadrotor(void)
 				sensors_read_mag();
 				//attitude_observer_correct_magnet(global_data.magnet_corrected);
 				mag_count = 0;
-			}else if(mag_count==1){
-
-				hmc5843_start_read();
-				mag_count++;
 			}
-			else
+			else if(mag_count==1)
 			{
-				mag_count++;
+				hmc5843_start_read();
 			}
+			mag_count++;
+			led_toggle(LED_GREEN);
 
 			// Correction step of observer filter
-			attitude_tobi_laurens();
+//			attitude_tobi_laurens();
+//
+//			if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_VICON_ONLY ||
+//				global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_VISION_VICON_BACKUP)
+//			{
+//				vicon_position_kalman();
+//			}
+//			else if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_GPS_ONLY)
+//			{
+//				outdoor_position_kalman();
+//			}
+//
+//			control_quadrotor_attitude();
 
-			if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_VICON_ONLY ||
-				global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_VISION_VICON_BACKUP)
-			{
-				vicon_position_kalman();
-			}
-			else if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_GPS_ONLY)
-			{
-				outdoor_position_kalman();
-			}
-
-			control_quadrotor_attitude();
+			// Send the raw sensor/ADC values
+			communication_send_raw_data(loop_start_time);
 
 			//debug counting number of executions
 			count++;
@@ -387,7 +395,7 @@ void main_loop_quadrotor(void)
 		// Set camera shutter with 2.5ms resolution
 		else if (us_run_every(5000, COUNTER1, loop_start_time)) //was 2500 !!!
 		{
-			camera_shutter_handling(loop_start_time);
+//			camera_shutter_handling(loop_start_time);
 
 			// Measure time for debugging
 			time_debug.x = max(time_debug.x, sys_time_clock_get_time_usec()
@@ -398,73 +406,71 @@ void main_loop_quadrotor(void)
 		///////////////////////////////////////////////////////////////////////////
 		/// CRITICAL FAST 50 Hz functions
 		///////////////////////////////////////////////////////////////////////////
-		else if (us_run_every(20000, COUNTER3, loop_start_time))
+		else if (us_run_every(10000, COUNTER3, loop_start_time))	//100Hz RAW data send
 		{
-			// Read Analog-to-Digital converter
-			adc_read();
+//			// Read Analog-to-Digital converter
+//			adc_read();
+//
+//			// Control the quadrotor position
+//			control_quadrotor_position();
+//			// Read remote control
+//			remote_control();
+//
+//			control_camera_angle();
+//
+//			//float_vect3 opt;
+//			static float_vect3 opt_int;
+//			uint8_t valid = optical_flow_get_dxy(80, &global_data.optflow.x, &global_data.optflow.y, &global_data.optflow.z);
+//			if (valid)
+//			{
+//				opt_int.x += global_data.optflow.x;
+//				opt_int.y += global_data.optflow.y;
+//
+//			}
+//
+//			uint8_t supersampling = 10;
+//			for (int i = 0; i < supersampling; ++i)
+//			{
+//				global_data.sonar_distance += sonar_distance_get(ADC_5_CHANNEL);
+//			}
+//
+//			global_data.sonar_distance /= supersampling;
+//
+//			opt_int.z = valid;
+//			static unsigned int i = 0;
+//			if (i == 10)
+//			{
+//				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
+//
+//				i = 0;
+//			}
+//			i++;
+//			//optical_flow_debug_vect_send();
+//			//debug_vect("opt_int", opt_int);
+//			optical_flow_start_read(80);
+//
+//			if (global_data.state.position_estimation_mode
+//					== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_INTEGRATING
+//					|| global_data.state.position_estimation_mode
+//							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_NON_INTEGRATING
+//					|| global_data.state.position_estimation_mode
+//							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_ADD_VICON_AS_OFFSET
+//					|| global_data.state.position_estimation_mode
+//							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_ADD_VISION_AS_OFFSET
+//					|| global_data.state.position_estimation_mode
+//							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_ODOMETRY_ADD_VISION_AS_OFFSET
+//					|| global_data.state.position_estimation_mode
+//							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_VICON
+//					|| global_data.state.position_estimation_mode
+//							== POSITION_ESTIMATION_MODE_GPS_OPTICAL_FLOW
+//					|| global_data.state.position_estimation_mode
+//							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_GLOBAL_VISION
+//					|| global_data.state.position_estimation_mode
+//							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_VISUAL_ODOMETRY_GLOBAL_VISION)
+//			{
+//				optflow_speed_kalman();
+//			}
 
-			// Control the quadrotor position
-			control_quadrotor_position();
-			// Read remote control
-			remote_control();
-
-			control_camera_angle();
-
-			//float_vect3 opt;
-			static float_vect3 opt_int;
-			uint8_t valid = optical_flow_get_dxy(80, &global_data.optflow.x, &global_data.optflow.y, &global_data.optflow.z);
-			if (valid)
-			{
-				opt_int.x += global_data.optflow.x;
-				opt_int.y += global_data.optflow.y;
-
-			}
-
-			uint8_t supersampling = 10;
-			for (int i = 0; i < supersampling; ++i)
-			{
-				global_data.sonar_distance += sonar_distance_get(ADC_5_CHANNEL);
-			}
-
-			global_data.sonar_distance /= supersampling;
-
-			opt_int.z = valid;
-			static unsigned int i = 0;
-			if (i == 10)
-			{
-				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
-
-				i = 0;
-			}
-			i++;
-			//optical_flow_debug_vect_send();
-			//debug_vect("opt_int", opt_int);
-			optical_flow_start_read(80);
-
-			if (global_data.state.position_estimation_mode
-					== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_INTEGRATING
-					|| global_data.state.position_estimation_mode
-							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_NON_INTEGRATING
-					|| global_data.state.position_estimation_mode
-							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_ADD_VICON_AS_OFFSET
-					|| global_data.state.position_estimation_mode
-							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_ADD_VISION_AS_OFFSET
-					|| global_data.state.position_estimation_mode
-							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_ODOMETRY_ADD_VISION_AS_OFFSET
-					|| global_data.state.position_estimation_mode
-							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_VICON
-					|| global_data.state.position_estimation_mode
-							== POSITION_ESTIMATION_MODE_GPS_OPTICAL_FLOW
-					|| global_data.state.position_estimation_mode
-							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_GLOBAL_VISION
-					|| global_data.state.position_estimation_mode
-							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_VISUAL_ODOMETRY_GLOBAL_VISION)
-			{
-				optflow_speed_kalman();
-			}
-
-			// Send the raw sensor/ADC values
-			communication_send_raw_data(loop_start_time);
 		}
 		///////////////////////////////////////////////////////////////////////////
 
@@ -487,19 +493,19 @@ void main_loop_quadrotor(void)
 			//				global_data.state.position_fix = global_data.state.vision_ok;
 			//			}
 
-			update_system_statemachine(loop_start_time);
-			update_controller_setpoints();
-
-			mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(
-					global_data.param[PARAM_SEND_DEBUGCHAN],
-					sys_time_clock_get_loop_start_time_boot_ms(),
-					global_data.attitude_setpoint.x,
-					global_data.attitude_setpoint.y,
-					global_data.position_yaw_control_output,
-					global_data.thrust_control_output);
-
-			//STARTING AND LANDING
-			quadrotor_start_land_handler(loop_start_time);
+//			update_system_statemachine(loop_start_time);
+//			update_controller_setpoints();
+//
+//			mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(
+//					global_data.param[PARAM_SEND_DEBUGCHAN],
+//					sys_time_clock_get_loop_start_time_boot_ms(),
+//					global_data.attitude_setpoint.x,
+//					global_data.attitude_setpoint.y,
+//					global_data.position_yaw_control_output,
+//					global_data.thrust_control_output);
+//
+//			//STARTING AND LANDING
+//			quadrotor_start_land_handler(loop_start_time);
 		}
 		///////////////////////////////////////////////////////////////////////////
 
@@ -510,10 +516,10 @@ void main_loop_quadrotor(void)
 		else if (us_run_every(5000, COUNTER6, loop_start_time))
 		{
 
-			if (global_data.param[PARAM_SEND_SLOT_DEBUG_6])
-			{
-				debug_vect("att_ctrl_o", global_data.attitude_control_output);
-			}
+//			if (global_data.param[PARAM_SEND_SLOT_DEBUG_6])
+//			{
+//				debug_vect("att_ctrl_o", global_data.attitude_control_output);
+//			}
 		}
 		///////////////////////////////////////////////////////////////////////////
 
@@ -525,10 +531,10 @@ void main_loop_quadrotor(void)
 		{
 			// The onboard controllers go into failsafe mode once
 			// position data is missing
-			handle_controller_timeouts(loop_start_time);
+//			handle_controller_timeouts(loop_start_time);
 			// Send buffered data such as debug text messages
 			// Empty one message out of the buffer
-			debug_message_send_one();
+//			debug_message_send_one();
 
 			// Toggle status led
 			led_toggle(LED_RED);
@@ -546,22 +552,22 @@ void main_loop_quadrotor(void)
 			handle_eeprom_write_request();
 			handle_reset_request();
 
-			update_controller_parameters();
+//			update_controller_parameters();
 
-			communication_send_controller_feedback();
-
-			communication_send_remote_control();
+//			communication_send_controller_feedback();
+//
+//			communication_send_remote_control();
 
 			// Pressure sensor driver works, but not tested regarding stability
 			//			sensors_pressure_bmp085_read_out();
 
-			if (global_data.param[PARAM_POSITION_YAW_TRACKING] == 1)
-			{
-				mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0,
-						90, global_data.param[PARAM_POSITION_SETPOINT_YAW]);
-				mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0,
-						91, global_data.yaw_pos_setpoint);
-			}
+//			if (global_data.param[PARAM_POSITION_YAW_TRACKING] == 1)
+//			{
+//				mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0,
+//						90, global_data.param[PARAM_POSITION_SETPOINT_YAW]);
+//				mavlink_msg_debug_send(global_data.param[PARAM_SEND_DEBUGCHAN], 0,
+//						91, global_data.yaw_pos_setpoint);
+//			}
 		}
 		///////////////////////////////////////////////////////////////////////////
 
@@ -642,7 +648,7 @@ void main_loop_quadrotor(void)
 				debug_message_send_one();
 			}
 
-			communication_send_attitude_position(loop_start_time);
+//			communication_send_attitude_position(loop_start_time);
 
 			// Send parameter
 			communication_queued_send();
