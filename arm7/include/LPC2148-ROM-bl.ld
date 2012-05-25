@@ -63,6 +63,13 @@ SECTIONS
   
     . = ALIGN(4);
 	/* mthomas - end */
+
+   /* .ARM.exidx is sorted, so has to go in its own output section.  */
+    .ARM.exidx : {
+        __exidx_start = .;
+        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+        __exidx_end = .;
+    } >ROM
    
   _etext = . ;
   PROVIDE (etext = .);
