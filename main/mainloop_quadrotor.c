@@ -400,8 +400,8 @@ void main_loop_quadrotor(void)
 		///////////////////////////////////////////////////////////////////////////
 		else if (us_run_every(20000, COUNTER3, loop_start_time))
 		{
-			// Read Analog-to-Digital converter
-			adc_read();
+			// Read infrared sensor
+			//adc_read();
 
 			// Control the quadrotor position
 			control_quadrotor_position();
@@ -410,36 +410,36 @@ void main_loop_quadrotor(void)
 
 			control_camera_angle();
 
-			//float_vect3 opt;
-			static float_vect3 opt_int;
-			uint8_t valid = optical_flow_get_dxy(80, &global_data.optflow.x, &global_data.optflow.y, &global_data.optflow.z);
-			if (valid)
-			{
-				opt_int.x += global_data.optflow.x;
-				opt_int.y += global_data.optflow.y;
-
-			}
-
-			uint8_t supersampling = 10;
-			for (int i = 0; i < supersampling; ++i)
-			{
-				global_data.sonar_distance += sonar_distance_get(ADC_5_CHANNEL);
-			}
-
-			global_data.sonar_distance /= supersampling;
-
-			opt_int.z = valid;
-			static unsigned int i = 0;
-			if (i == 10)
-			{
-				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
-
-				i = 0;
-			}
-			i++;
+//			//float_vect3 opt;
+//			static float_vect3 opt_int;
+//			uint8_t valid = optical_flow_get_dxy(80, &global_data.optflow.x, &global_data.optflow.y, &global_data.optflow.z);
+//			if (valid)
+//			{
+//				opt_int.x += global_data.optflow.x;
+//				opt_int.y += global_data.optflow.y;
+//
+//			}
+//
+//			uint8_t supersampling = 10;
+//			for (int i = 0; i < supersampling; ++i)
+//			{
+//				global_data.sonar_distance += sonar_distance_get(ADC_5_CHANNEL);
+//			}
+//
+//			global_data.sonar_distance /= supersampling;
+//
+//			opt_int.z = valid;
+//			static unsigned int i = 0;
+//			if (i == 10)
+//			{
+//				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.sonar_distance_filtered);
+//
+//				i = 0;
+//			}
+//			i++;
 			//optical_flow_debug_vect_send();
 			//debug_vect("opt_int", opt_int);
-			optical_flow_start_read(80);
+//			optical_flow_start_read(80);
 
 			if (global_data.state.position_estimation_mode
 					== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_INTEGRATING
@@ -465,6 +465,9 @@ void main_loop_quadrotor(void)
 
 			// Send the raw sensor/ADC values
 			communication_send_raw_data(loop_start_time);
+
+			float_vect3 yy; yy.x = global_data.yaw_lowpass; yy.y = 0.f; yy.z = 0.f;
+			debug_vect("yaw_low", yy);
 		}
 		///////////////////////////////////////////////////////////////////////////
 

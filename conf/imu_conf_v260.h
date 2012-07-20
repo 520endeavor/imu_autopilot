@@ -157,7 +157,7 @@
 //@{
 //DATAREADY PIN///////////////////////////////////////////////////////////
 //Dataready pin on P0.30/EINT3
-#define HMC5843_I2C_BUS 1
+#define HMC5843_I2C_BUS 0		//1 for internal mag, 0 for external mag
 #define HMC5843_DRDY_PINSEL PINSEL1
 #define HMC5843_DRDY_PINSEL_BIT 28
 #define HMC5843_DRDY_PINSEL_VAL 2

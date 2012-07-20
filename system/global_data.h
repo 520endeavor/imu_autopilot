@@ -357,6 +357,8 @@ struct global_struct
 	float yaw_pos_setpoint;                   ///<
 	float_vect3 optflow;
 
+	float yaw_lowpass;
+
 
 	float_vect3 position_setpoint_min;        ///<
 	float_vect3 position_setpoint_max;        ///<
@@ -404,6 +406,7 @@ struct global_struct
 	float_vect3 vicon_magnetometer_replacement;  ///< Values in magnetometer units (norm of vector: ~200) to replace the mag with vicon input HACK!
 	uint64_t pos_last_valid;
 	uint64_t vicon_last_valid;
+	uint64_t flow_last_valid;
 	uint64_t entry_critical;
 
 	uint16_t i2c0_err_count;                  ///< I2C0 errors
@@ -789,7 +792,8 @@ static inline void global_data_reset(void)
 	global_data.position_setpoint_offset.y = 0.00;
 	global_data.position_setpoint_offset.z = 0;
 
-	global_data.yaw_pos_setpoint=0;
+	global_data.yaw_pos_setpoint = 0.f;
+	global_data.yaw_lowpass = 0.f;
 
 	global_data.position_control_output.x = 0.0f;
 	global_data.position_control_output.y = 0.0f;
@@ -811,11 +815,11 @@ static inline void global_data_reset(void)
 	global_data.vicon_magnetometer_replacement.z = 0;
 
 	//safe corridor
-	global_data.position_setpoint_min.x=-2.0f;
-	global_data.position_setpoint_min.y=-1.0f;
-	global_data.position_setpoint_min.z=-1.0f;
-	global_data.position_setpoint_max.x=2.0f;
-	global_data.position_setpoint_max.y=1.0f;
+	global_data.position_setpoint_min.x=-1000.0f;
+	global_data.position_setpoint_min.y=-1000.0f;
+	global_data.position_setpoint_min.z=-1.5f;
+	global_data.position_setpoint_max.x=1000.0f;
+	global_data.position_setpoint_max.y=1000.0f;
 	global_data.position_setpoint_max.z=0.0f;
 
 	global_data.position_setpoint_offset.x = 0;

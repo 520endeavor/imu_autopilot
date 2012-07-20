@@ -3,9 +3,9 @@ CONFIG = ''
 BUILDDIR = build
 OBJDIR = build/obj
 BINDIR = build/bin
-MAVLINKBASEDIR = ../mavlink/include
-MAVLINKDIR = ../mavlink/include/pixhawk
-MAVLINKUSERDIR = ../mavlink/include/user
+MAVLINKBASEDIR = ../mavlink/include/mavlink/v1.0
+MAVLINKDIR = ../mavlink/include/mavlink/v1.0/pixhawk
+MAVLINKUSERDIR = ../mavlink/include/mavlink/v1.0/user
 Q = @
 TOOLS = tools
 

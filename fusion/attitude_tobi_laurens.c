@@ -304,8 +304,6 @@ void attitude_tobi_laurens(void)
 
 
 
-
-
 	measurement[0] = acc.x;
 	measurement[1] = acc.y;
 	measurement[2] = acc.z;
@@ -499,4 +497,6 @@ void attitude_tobi_laurens(void)
 	global_data.attitude_rate.x = kal_w.x;
 	global_data.attitude_rate.y = kal_w.y;
 	global_data.attitude_rate.z = kal_w.z;
+
+	global_data.yaw_lowpass = 0.99f * global_data.yaw_lowpass + 0.01f * global_data.attitude_rate.z;
 }

@@ -180,8 +180,17 @@ inline void remote_control(void)
 				if (ppm_get_channel(global_data.param[PARAM_PPM_TUNE4_CHANNEL])
 						< PPM_LOW_TRIG)
 				{
-					global_data.position.x = 0;
-					global_data.position.y = 0;
+					if (global_data.param[PARAM_ATT_KAL_YAW_ESTIMATION_MODE] == 3)
+					{	//one special case - if yaw is from vicon then reset position to current vicon position
+						global_data.position.x = global_data.vicon_data.x;
+						global_data.position.y = global_data.vicon_data.y;
+					}
+					else
+					{
+						global_data.position.x = 0;
+						global_data.position.y = 0;
+					}
+
 				}
 			}
 

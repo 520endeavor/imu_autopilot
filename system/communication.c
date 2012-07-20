@@ -123,7 +123,7 @@ void handle_mavlink_message(mavlink_channel_t chan,
 	{
 	case MAVLINK_COMM_0:
 	{
-		if (msg->msgid != MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE && msg->msgid != MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE && msg->msgid != MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL)
+		if (msg->msgid != MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE && msg->msgid != MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE && msg->msgid != MAVLINK_MSG_ID_IMAGE_TRIGGER_CONTROL && msg->msgid != MAVLINK_MSG_ID_OPTICAL_FLOW)
 		{
 			// Copy to COMM 1
 			len = mavlink_msg_to_send_buffer(buf, msg);
@@ -437,14 +437,31 @@ void handle_mavlink_message(mavlink_channel_t chan,
 		global_data.state.vicon_ok=1;
 		global_data.state.vicon_attitude_new_data=1;
 
-		global_data.vicon_magnetometer_replacement.x = 200.0f*lookup_cos(pos.yaw);
-		global_data.vicon_magnetometer_replacement.y = -200.0f*lookup_sin(pos.yaw);
-		global_data.vicon_magnetometer_replacement.z = 0.f;
+		global_data.vicon_magnetometer_replacement.x = 230.0f*lookup_cos(pos.yaw);
+		global_data.vicon_magnetometer_replacement.y = -230.0f*lookup_sin(pos.yaw);
+		global_data.vicon_magnetometer_replacement.z = 480.f;
+
+//#if HMC5843_I2C_BUS == 0 //external mag
+//		global_data.magnet_raw.x = (mag.x - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_X]);
+//		global_data.magnet_raw.y = -(mag.y - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_Y]);
+//		global_data.magnet_raw.z = -(mag.z - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_Z]);
+//#else	//this is the imu mag
+//		global_data.magnet_raw.x = -(mag.x - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_X]);
+//		global_data.magnet_raw.y = (mag.y - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_Y]);
+//		global_data.magnet_raw.z = -(mag.z - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_Z]);
+//#endif
+
+//		debug_vect("mag_rep", global_data.vicon_magnetometer_replacement);
+//		float_vect3 mag_corr;
+//		mag_corr.x = global_data.magnet_corrected.x;
+//		mag_corr.y = global_data.magnet_corrected.y;
+//		mag_corr.z = global_data.magnet_corrected.z;
+//		debug_vect("mag_corr", mag_corr);
 
 		if (!global_data.state.vision_ok)
 		{
-			global_data.vision_magnetometer_replacement.x = 200.0f*lookup_cos(pos.yaw);
-			global_data.vision_magnetometer_replacement.y = -200.0f*lookup_sin(pos.yaw);
+			global_data.vision_magnetometer_replacement.x = 230.0f*lookup_cos(pos.yaw);
+			global_data.vision_magnetometer_replacement.y = -230.0f*lookup_sin(pos.yaw);
 			global_data.vision_magnetometer_replacement.z = 0.f;
 		}
 
@@ -462,6 +479,37 @@ void handle_mavlink_message(mavlink_channel_t chan,
 
 	}
 	break;
+	case MAVLINK_MSG_ID_OPTICAL_FLOW:
+	{
+		mavlink_optical_flow_t flow;
+		mavlink_msg_optical_flow_decode(msg, &flow);
+		global_data.optflow.x = -flow.flow_comp_m_y;//physical mounting direction of flow sensor compensated here
+		global_data.optflow.y = flow.flow_comp_m_x;//physical mounting direction of flow sensor compensated here
+		global_data.optflow.z = flow.quality;
+		global_data.ground_distance = flow.ground_distance;
+
+		if (global_data.optflow.z > 20)
+		{
+			global_data.flow_last_valid = sys_time_clock_get_time_usec();
+		}
+
+//		float_vect3 flowQuad, flowWorld;
+//		float x_comp =  -global_data.attitude_rate.y * global_data.ground_distance;
+//		float y_comp =  global_data.attitude_rate.x * global_data.ground_distance;
+//		flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x + x_comp : 0;
+//		flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y + y_comp : 0;
+//		flowQuad.z = 0;
+//		body2navi(&flowQuad, &global_data.attitude, &flowWorld);
+//		debug_vect("flowC", flowWorld);
+//		flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x : 0;
+//		flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y : 0;
+//		flowQuad.z = 0;
+//		body2navi(&flowQuad, &global_data.attitude, &flowWorld);
+//		debug_vect("flowNC", flowWorld);
+
+		//mavlink_msg_optical_flow_send(MAVLINK_COMM_0, flow.time_usec, flow.sensor_id, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.ground_distance);
+		break;
+	}
 	case MAVLINK_MSG_ID_PING:
 	{
 		mavlink_ping_t ping;

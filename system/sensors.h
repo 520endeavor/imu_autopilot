@@ -151,19 +151,26 @@ static inline void sensors_read_mag(void)
 	//hmc5843_start_read();
 	//copy last data and update state
 	global_data.state.magnet_ok = hmc5843_data_ok();
-	hmc5843_get_data(&global_data.magnet_raw);
+	int16_vect3 mag;
+	hmc5843_get_data(&mag);
 	global_data.state.magnet_ok &= hmc5843_data_ok();//if interrupt came in between
 
-	// Correct offset and scale to milli Gauss
-#ifdef IMU_PIXHAWK_V260_EXTERNAL_MAG
-	global_data.magnet_corrected.y = -(global_data.magnet_raw.x - global_data.param[PARAM_CAL_MAG_OFFSET_X]);
-	global_data.magnet_corrected.x = -(global_data.magnet_raw.y - global_data.param[PARAM_CAL_MAG_OFFSET_Y]);
-	global_data.magnet_corrected.z =  -(global_data.magnet_raw.z - global_data.param[PARAM_CAL_MAG_OFFSET_Z]);
-#else
-	global_data.magnet_corrected.x = -(global_data.magnet_raw.x - global_data.param[PARAM_CAL_MAG_OFFSET_X]);
-	global_data.magnet_corrected.y = (global_data.magnet_raw.y - global_data.param[PARAM_CAL_MAG_OFFSET_Y]);
-	global_data.magnet_corrected.z = -(global_data.magnet_raw.z - global_data.param[PARAM_CAL_MAG_OFFSET_Z]);
+	if (abs(mag.x) < 3000 && abs(mag.y) < 3000 && abs(mag.z) < 3000)
+	{
+#if HMC5843_I2C_BUS == 0 //external mag
+		global_data.magnet_raw.x = (mag.x - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_X]);
+		global_data.magnet_raw.y = -(mag.y - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_Y]);
+		global_data.magnet_raw.z = -(mag.z - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_Z]);
+#else	//this is the imu mag
+		global_data.magnet_raw.x = -(mag.x - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_X]);
+		global_data.magnet_raw.y = (mag.y - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_Y]);
+		global_data.magnet_raw.z = -(mag.z - (int16_t)global_data.param[PARAM_CAL_MAG_OFFSET_Z]);
 #endif
+
+		global_data.magnet_corrected.x = global_data.magnet_raw.x;
+		global_data.magnet_corrected.y = global_data.magnet_raw.y;
+		global_data.magnet_corrected.z = global_data.magnet_raw.z;
+	}
 }
 
 static inline void sensors_pressure_bmp085_read_out(void)

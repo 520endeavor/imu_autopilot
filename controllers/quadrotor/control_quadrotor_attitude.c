@@ -75,7 +75,7 @@ inline void control_quadrotor_attitude()
 	}
 
 	float yaw_pos_corr = pid_calculate(&yaw_pos_controller,
-			0, yaw_e, global_data.gyros_si.z,
+			0, yaw_e, global_data.yaw_lowpass,
 			CONTROL_PID_ATTITUDE_INTERVAL);
 	global_data.position_yaw_control_output = yaw_pos_corr;
 
@@ -127,7 +127,7 @@ inline void control_quadrotor_attitude()
 
 	//	Control Yaw Speed
 	float yaw = pid_calculate(&yaw_speed_controller,
-			global_data.attitude_setpoint.z, global_data.attitude_rate.z, 0,
+			global_data.attitude_setpoint.z, global_data.yaw_lowpass, 0,
 			CONTROL_PID_ATTITUDE_INTERVAL); //ATTENTION WE ARE CONTROLLING YAWspeed to YAW angle
 	//Control Nick
 	float nick = pid_calculate(&nick_controller,
@@ -202,16 +202,6 @@ inline void control_quadrotor_attitude()
 				+ global_data.position_control_output.z);
 
 		global_data.motor_thrust_actual = motor_thrust;
-
-		//Security: thrust never higher than remote control
-		if (motor_thrust > global_data.gas_remote)
-		{
-			motor_thrust = global_data.gas_remote;
-		}
-		else if (motor_thrust < 0)
-		{
-			motor_thrust = 0;
-		}
 	}
 	else if ((global_data.state.mav_mode & (uint8_t) MAV_MODE_FLAG_SAFETY_ARMED) == 0)
 	{
@@ -224,6 +214,16 @@ inline void control_quadrotor_attitude()
 		motor_thrust = 0;
 		// Message will flood buffer at 200 Hz, which is fine as it it critical
 		debug_message_buffer("ERROR: NO VALID MODE, THRUST LIMITED TO 0%");
+	}
+
+	//Security: thrust never higher than remote control
+	if (motor_thrust > global_data.gas_remote)
+	{
+		motor_thrust = global_data.gas_remote;
+	}
+	else if (motor_thrust < 0)
+	{
+		motor_thrust = 0;
 	}
 
 	// Convertion to motor-step units

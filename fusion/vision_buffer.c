@@ -216,6 +216,10 @@ void vision_buffer_handle_data(mavlink_vision_position_estimate_t* pos)
  */
 void vision_buffer_handle_global_data(mavlink_global_vision_position_estimate_t* pos)
 {
+	//#define PROJECT_GLOBAL_DATA_FORWARD
+
+	#ifdef PROJECT_GLOBAL_DATA_FORWARD
+
 	if (vision_buffer_index_write == vision_buffer_index_read)
 	{
 		//buffer empty
@@ -256,9 +260,6 @@ void vision_buffer_handle_global_data(mavlink_global_vision_position_estimate_t*
 					= vision_buffer[i].time_captured;
 			global_data.vision_data_global.comp_end = sys_time_clock_get_unix_time();
 
-#define PROJECT_GLOBAL_DATA_FORWARD
-
-#ifdef PROJECT_GLOBAL_DATA_FORWARD
 			// FIXME currently visodo is not allowed to run in parallel, else race condititions!
 
 			// Project position measurement
@@ -281,16 +282,6 @@ void vision_buffer_handle_global_data(mavlink_global_vision_position_estimate_t*
 				vision_buffer[j].pos.z = vision_buffer[j].pos.z + (pos->z - vision_buffer[i].pos.z);
 			}
 
-#else
-			global_data.vision_data_global.pos.x = pos->x;
-			global_data.vision_data_global.pos.y = pos->y;
-			global_data.vision_data_global.pos.z = pos->z;
-
-			//Set data from Vision directly
-			global_data.vision_data_global.ang.x = pos->roll;
-			global_data.vision_data_global.ang.y = pos->pitch;
-			global_data.vision_data_global.ang.z = pos->yaw;
-#endif
 
 			// If yaw input from vision is enabled, feed vision
 			// directly into state estimator
@@ -341,6 +332,21 @@ void vision_buffer_handle_global_data(mavlink_global_vision_position_estimate_t*
 		debug_message_buffer_sprintf("vision_buffer data NOT found skipped %i data sets", for_count);
 	}
 	vision_buffer_index_read = i;//skip all images that are older;
+#else
+	global_data.vision_data_global.pos.x = pos->x;
+	global_data.vision_data_global.pos.y = pos->y;
+	global_data.vision_data_global.pos.z = pos->z;
+
+	//Set data from Vision directly
+	global_data.vision_data_global.ang.x = pos->roll;
+	global_data.vision_data_global.ang.y = pos->pitch;
+	global_data.vision_data_global.ang.z = pos->yaw;
+
+	global_data.vision_data_global.new_data = 1;
+	global_data.state.global_vision_attitude_new_data = 1;
+#endif
+
+	mavlink_msg_global_vision_position_estimate_send(MAVLINK_COMM_0, sys_time_clock_get_unix_loop_start_time(), global_data.vision_data_global.pos.x, global_data.vision_data_global.pos.y, global_data.vision_data_global.pos.z, global_data.vision_data_global.ang.x, global_data.vision_data_global.ang.y, global_data.vision_data_global.ang.z);
 }
 
 #endif /* VISION_BUFFER_C_ */

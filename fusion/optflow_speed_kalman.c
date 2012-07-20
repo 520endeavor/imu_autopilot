@@ -38,6 +38,9 @@ float Qy, Ry;
 float scale;
 int flag = 1;
 
+float current_error_x = 0.f;
+float current_error_y = 0.f;
+
 #ifdef IMU_PIXHAWK_V260_EXTERNAL_MAG
 kalman_t outdoor_position_kalman_z;
 #endif
@@ -141,8 +144,8 @@ void optflow_speed_kalman_init(void)
 void optflow_speed_kalman(void)
 {
 	//Transform accelerometer used in all directions
-	float_vect3 acc_nav;
-	body2navi(&global_data.accel_si, &global_data.attitude, &acc_nav);
+	//float_vect3 acc_nav;
+	//body2navi(&global_data.accel_si, &global_data.attitude, &acc_nav);
 
 //	//Calculate gyro offsets. Workaround for old attitude filter.
 //	static float gyro_x_offset = 0, gyro_y_offset = 0;
@@ -150,30 +153,30 @@ void optflow_speed_kalman(void)
 //	gyro_x_offset = (1 - lp) * gyro_x_offset + lp * global_data.gyros_si.x;
 //	gyro_y_offset = (1 - lp) * gyro_y_offset + lp * global_data.gyros_si.y;
 
-	//Low-pass filter for sonar with all spikes. Makes filter following big steps.
-	static float sonar_distance_spike = 0;
-	float sonar_distance_spike_lp = 0.1; // ~ 1/time to get to new step
-	sonar_distance_spike = (1 - sonar_distance_spike_lp) * sonar_distance_spike + sonar_distance_spike_lp * global_data.sonar_distance;
-
-	//Low-pass filter for sonar without spikes
-	//only update this low-pass if the signal is close to one of these two low-pass filters.
-	static float sonar_distance = 0;
-	float z_lp = 0.2; // real low-pass on spike rejected data.
-	float spike_reject_threshold = 0.2f; // 0.4 m
-	uint8_t sonar_distance_rejecting_spike=0;
-	if ((fabs(sonar_distance_spike - global_data.sonar_distance) < spike_reject_threshold) ||
-			(fabs(sonar_distance - global_data.sonar_distance) < spike_reject_threshold))
-	{
-		sonar_distance = (1 - z_lp) * sonar_distance + z_lp
-				* global_data.sonar_distance * cos(global_data.attitude.x)
-				* cos(global_data.attitude.y);
-	}
-	else
-	{
-		sonar_distance_rejecting_spike = 1;
-	}
-
-	global_data.sonar_distance_filtered = sonar_distance;
+//	//Low-pass filter for sonar with all spikes. Makes filter following big steps.
+//	static float sonar_distance_spike = 0;
+//	float sonar_distance_spike_lp = 0.1; // ~ 1/time to get to new step
+//	sonar_distance_spike = (1 - sonar_distance_spike_lp) * sonar_distance_spike + sonar_distance_spike_lp * global_data.sonar_distance;
+//
+//	//Low-pass filter for sonar without spikes
+//	//only update this low-pass if the signal is close to one of these two low-pass filters.
+//	static float sonar_distance = 0;
+//	float z_lp = 0.2; // real low-pass on spike rejected data.
+//	float spike_reject_threshold = 0.2f; // 0.4 m
+//	uint8_t sonar_distance_rejecting_spike=0;
+//	if ((fabs(sonar_distance_spike - global_data.sonar_distance) < spike_reject_threshold) ||
+//			(fabs(sonar_distance - global_data.sonar_distance) < spike_reject_threshold))
+//	{
+//		sonar_distance = (1 - z_lp) * sonar_distance + z_lp
+//				* global_data.sonar_distance * cos(global_data.attitude.x)
+//				* cos(global_data.attitude.y);
+//	}
+//	else
+//	{
+//		sonar_distance_rejecting_spike = 1;
+//	}
+//
+//	global_data.sonar_distance_filtered = sonar_distance;
 
 
 #ifdef IMU_PIXHAWK_V260_EXTERNAL_MAG
@@ -233,16 +236,24 @@ void optflow_speed_kalman(void)
 
 	// transform optical flow into global frame
 	float_vect3 flow, flowQuad, flowWorld;//, flowQuadUncorr, flowWorldUncorr;
-	flow.x = global_data.optflow.x;
-	flow.y = global_data.optflow.y;
-	flow.z = 0.0;
-
-	turn_xy_plane(&flow, PI, &flowQuad);
-	flowQuad.x = flowQuad.x * scale - global_data.attitude_rate.y;
-	flowQuad.y = flowQuad.y * scale + global_data.attitude_rate.x;
+//	flow.x = global_data.optflow.x;
+//	flow.y = global_data.optflow.y;
+//	flow.z = 0.0;
+//
+//	turn_xy_plane(&flow, PI, &flowQuad);
+//	flowQuad.x = flowQuad.x * scale - global_data.attitude_rate.y;
+//	flowQuad.y = flowQuad.y * scale + global_data.attitude_rate.x;
 //	This was for biased gyro rates
 //	flowQuad.x = flowQuad.x * scale - (global_data.gyros_si.y - gyro_y_offset);
 //	flowQuad.y = flowQuad.y * scale + (global_data.gyros_si.x - gyro_x_offset);
+
+	float x_comp =  -global_data.attitude_rate.y * global_data.ground_distance;
+	float y_comp =  global_data.attitude_rate.x * global_data.ground_distance;
+
+
+	flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x + x_comp : 0;
+	flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y + y_comp : 0;
+	flowQuad.z = 0;
 
 	body2navi(&flowQuad, &global_data.attitude, &flowWorld);
 
@@ -251,57 +262,14 @@ void optflow_speed_kalman(void)
 
 	//distance from flow sensor to ground
 	//float flow_distance = -global_data.vicon_data.z;
-	float flow_distance = sonar_distance;
+	float flow_distance = global_data.ground_distance;
 
 	static float px = 0.0;
 	static float py = 0.0;
 	float QxLocal = 0.1, QyLocal = 0.1;
 	//float RxLocal = 0.1, RyLocal = 0.1;
 
-	// initializes x and y to global position
-	if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_VICON)
-	{
-		global_data.position.x = global_data.vicon_data.x;
-		global_data.position.y = global_data.vicon_data.y;
-	}
-	else if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_GLOBAL_VISION && global_data.vision_data_global.new_data == 1)
-	{
-//		global_data.position.x = global_data.position.x*0.6f + 0.4f*global_data.vision_data_global.pos.x;
-//		global_data.position.y = global_data.position.y*0.6f + 0.4f*global_data.vision_data_global.pos.y;
-
-		//simple 1D Kalman filtering (x direction)
-		float x_ = global_data.position.x;
-		float px_ = px + QxLocal;
-
-		float Kx = 0.4f;//px_/(px_ + RxLocal);
-
-		float x = x_ + Kx*(global_data.vision_data_global.pos.x - x_);
-		px = (1.0 - Kx)*px_;
-
-		global_data.position.x = x;
-
-		//simple 1D Kalman filtering (y direction)
-		float y_ = global_data.position.y;
-		float py_ = py + QyLocal;
-
-		float Ky = 0.4f;//py_/(py_ + RyLocal);
-
-		float y = y_ + Ky*(global_data.vision_data_global.pos.y - y_);
-		py = (1.0 - Ky)*py_;
-
-		global_data.position.y = y;
-
-		global_data.vision_data_global.new_data = 0;
-	}
-	else if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_NON_INTEGRATING)
-	{
-		global_data.position.x = 0;
-		global_data.position.y = 0;
-		global_data.position.z = 0;
-	}
-
-	//  global_data.position.z = global_data.vicon_data.z;
-
+	//new prediction model for a kalmanfilter
 	//---------------------------------------------------
 	// Vx Kalman Filter
 	// prediction
@@ -309,7 +277,7 @@ void optflow_speed_kalman(void)
 	float vx_ = ax * vx;
 	if (global_data.state.fly == FLY_FLYING)
 	{
-		vx += bx * global_data.attitude.y;
+		vx_ += bx * (cos(global_data.attitude.z) * global_data.attitude.y + sin(global_data.attitude.z) * global_data.attitude.x);
 	}
 	float pvx_ = ax * pvx + Qx;
 
@@ -321,7 +289,7 @@ void optflow_speed_kalman(void)
 
 		// update step
 		//float xflow = global_data.optflow.x*global_data.position.z*scale;
-		float xflow = flow_distance * flowWorld.x;
+		float xflow = flowWorld.x;//flow_distance * flowWorld.x;
 		vx = vx_ + Kx * (xflow - cx * vx_);
 		pvx = (1.0 - Kx * cx) * pvx_;
 	}
@@ -334,8 +302,8 @@ void optflow_speed_kalman(void)
 	}
 
 	// assign readings from Kalman Filter
-	global_data.velocity.x = vx;
-	global_data.position.x += vx * VEL_KF_TIME_STEP_X;
+	global_data.velocity.x = flowWorld.x;//;//vx;
+	global_data.position.x += global_data.velocity.x * VEL_KF_TIME_STEP_X;
 
 	//---------------------------------------------------
 	// Vy Kalman Filter
@@ -343,7 +311,7 @@ void optflow_speed_kalman(void)
 	float vy_ = ay * vy;
 	if (global_data.state.fly == FLY_FLYING)
 	{
-		vy_ += by * global_data.attitude.x;
+		vy_ += by * (cos(global_data.attitude.z) * global_data.attitude.y - sin(global_data.attitude.z) * global_data.attitude.x);
 	}
 	float pvy_ = ay * pvy + Qy;
 
@@ -355,7 +323,7 @@ void optflow_speed_kalman(void)
 
 		// update step
 		//float yflow = global_data.optflow.y*global_data.position.z*scale;
-		float yflow = flow_distance * flowWorld.y;
+		float yflow = flowWorld.y;//flow_distance * flowWorld.y;
 		vy = vy_ + Ky * (yflow - cy * vy_);
 		pvy = (1.0 - Ky * cy) * pvy_;
 	}
@@ -368,8 +336,83 @@ void optflow_speed_kalman(void)
 	}
 
 	// assign readings from Kalman Filter
-	global_data.velocity.y = vy;
-	global_data.position.y += vy * VEL_KF_TIME_STEP_Y;
+	global_data.velocity.y = flowWorld.y;//vx;////vy;
+	global_data.position.y += global_data.velocity.y * VEL_KF_TIME_STEP_Y;
+
+	global_data.velocity.z = 0.f;
+	global_data.position.z = -global_data.ground_distance;
+
+
+	// initializes x and y to global position
+	if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_VICON)
+	{
+		global_data.position.x = global_data.vicon_data.x;
+		global_data.position.y = global_data.vicon_data.y;
+		current_error_x = 0.f;
+		current_error_y = 0.f;
+	}
+	else if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_GLOBAL_VISION && global_data.vision_data_global.new_data == 1)
+	{
+//		global_data.position.x = global_data.position.x*0.6f + 0.4f*global_data.vision_data_global.pos.x;
+//		global_data.position.y = global_data.position.y*0.6f + 0.4f*global_data.vision_data_global.pos.y;
+
+		current_error_x = global_data.vision_data_global.pos.x - global_data.position.x;
+		current_error_y = global_data.vision_data_global.pos.y - global_data.position.y;
+
+		//simple 1D Kalman filtering (x direction)
+//		float x_ = global_data.position.x;
+//		float px_ = px + QxLocal;
+//
+//		float Kx = 0.9f;//px_/(px_ + RxLocal);
+//
+//		float x = x_ + Kx*(global_data.vision_data_global.pos.x - x_);
+//		px = (1.0 - Kx)*px_;
+//
+//		global_data.position.x = x;
+//
+//		//simple 1D Kalman filtering (y direction)
+//		float y_ = global_data.position.y;
+//		float py_ = py + QyLocal;
+//
+//		float Ky = 0.9f;//py_/(py_ + RyLocal);
+//
+//		float y = y_ + Ky*(global_data.vision_data_global.pos.y - y_);
+//		py = (1.0 - Ky)*py_;
+//
+//		global_data.position.y = y;
+
+		global_data.vision_data_global.new_data = 0;
+	}
+	else if (global_data.state.position_estimation_mode == POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_NON_INTEGRATING)
+	{
+		global_data.position.x = 0;
+		global_data.position.y = 0;
+		global_data.position.z = 0;
+
+		current_error_x = 0.f;
+		current_error_y = 0.f;
+	}
+
+	float max_corr_speed = 0.2f * 0.02f;
+
+//	float x_corr = min(max_corr_speed, max(current_error_x, -max_corr_speed));
+//	float y_corr = min(max_corr_speed, max(current_error_y, -max_corr_speed));
+	//since min/max is available do this crap here:
+	float x_corr = (current_error_x > max_corr_speed) ? max_corr_speed : current_error_x;
+	float y_corr = (current_error_y > max_corr_speed) ? max_corr_speed : current_error_y;
+	x_corr = (current_error_x < -max_corr_speed) ? -max_corr_speed : x_corr;
+	y_corr = (current_error_y < -max_corr_speed) ? -max_corr_speed : y_corr;
+
+	global_data.position.x += x_corr;
+	global_data.position.y += y_corr;
+	current_error_x -= x_corr;
+	current_error_y -= y_corr;
+
+	//also adapt the speed by a fraction of the actual correction speed
+//	global_data.velocity.x += x_corr * 20.f;
+//	global_data.velocity.y += y_corr * 20.f;
+
+	//  global_data.position.z = global_data.vicon_data.z;
 
 //	float_vect3 debug;
 	//debug.x = (global_data.gyros_si.x - gyro_x_offset);
