@@ -109,6 +109,31 @@ void execute_command(mavlink_command_long_t* cmd)
 	}
 }
 
+
+// kalman filter parameters
+float ax = 1.f;
+float bx = 0.f;
+float cx = 1.0;
+
+float ay = 1.f;
+float by = 0.f;
+float cy = 1.0;
+
+// assumes initial state is 0
+float vx = 0.0;
+float vy = 0.0;
+
+// assumes initial error covariance is 0
+float pvx = 0.0;
+float pvy = 0.0;
+
+// noise parameters (hard-coded)
+float Qx = 0.005;
+float Rx = 0.2;
+
+float Qy = 0.005;
+float Ry = 0.2;
+
 /** @addtogroup COMM */
 //@{
 /** @name Communication functions
@@ -493,14 +518,81 @@ void handle_mavlink_message(mavlink_channel_t chan,
 			global_data.flow_last_valid = sys_time_clock_get_time_usec();
 		}
 
-//		float_vect3 flowQuad, flowWorld;
-//		float x_comp =  -global_data.attitude_rate.y * global_data.ground_distance;
-//		float y_comp =  global_data.attitude_rate.x * global_data.ground_distance;
-//		flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x + x_comp : 0;
-//		flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y + y_comp : 0;
-//		flowQuad.z = 0;
-//		body2navi(&flowQuad, &global_data.attitude, &flowWorld);
-//		debug_vect("flowC", flowWorld);
+		float_vect3 flowQuad, flowWorld;
+		float x_comp =  -global_data.attitude_rate.y * global_data.ground_distance;
+		float y_comp =  global_data.attitude_rate.x * global_data.ground_distance;
+		flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x + x_comp : 0;
+		flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y + y_comp : 0;
+		flowQuad.z = 0;
+		body2navi(&flowQuad, &global_data.attitude, &flowWorld);
+		debug_vect("flowRAW", flowWorld);
+
+		float flow_distance = global_data.ground_distance;
+
+		static float px = 0.0;
+		static float py = 0.0;
+		float QxLocal = 0.1, QyLocal = 0.1;
+		//float RxLocal = 0.1, RyLocal = 0.1;
+
+		//new prediction model for a kalmanfilter
+		//---------------------------------------------------
+		// Vx Kalman Filter
+		// prediction
+
+		float vx_ = ax * vx;
+		if (global_data.state.fly == FLY_FLYING)
+		{
+			vx_ += bx * (cos(global_data.attitude.z) * global_data.attitude.y + sin(global_data.attitude.z) * global_data.attitude.x);
+		}
+		float pvx_ = ax * pvx + Qx;
+
+		// do an update only if optical flow is good
+		if (global_data.optflow.z > 10.0)
+		{
+			// kalman gain
+			float Kx = pvx_ * ax / (ax * pvx_ * ax + Rx);
+
+			// update step
+			//float xflow = global_data.optflow.x*global_data.position.z*scale;
+			float xflow = flowWorld.x;//flow_distance * flowWorld.x;
+			vx = vx_ + Kx * (xflow - cx * vx_);
+			pvx = (1.0 - Kx * cx) * pvx_;
+		}
+
+		flowWorld.x = vx;
+
+		// Vy Kalman Filter
+		// prediction
+		float vy_ = ay * vy;
+		if (global_data.state.fly == FLY_FLYING)
+		{
+			vy_ += by * (cos(global_data.attitude.z) * global_data.attitude.y - sin(global_data.attitude.z) * global_data.attitude.x);
+		}
+		float pvy_ = ay * pvy + Qy;
+
+		// do an update only if optical flow is good
+		if (global_data.optflow.z > 10.0)
+		{
+			// kalman gain
+			float Ky = pvy_ * ay / (ay * pvy_ * ay + Ry);
+
+			// update step
+			//float yflow = global_data.optflow.y*global_data.position.z*scale;
+			float yflow = flowWorld.y;//flow_distance * flowWorld.y;
+			vy = vy_ + Ky * (yflow - cy * vy_);
+			pvy = (1.0 - Ky * cy) * pvy_;
+		}
+		// otherwise take only the prediction
+		else
+		{
+			// Let speed decay to zero if no measurements are available
+			vy = vy_*0.95;
+			pvy = pvy_;
+		}
+
+		flowWorld.y = vy;
+
+		debug_vect("flowFIL", flowWorld);
 //		flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x : 0;
 //		flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y : 0;
 //		flowQuad.z = 0;

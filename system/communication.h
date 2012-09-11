@@ -31,6 +31,8 @@
 #ifndef COMMUNICATION_H_
 #define COMMUNICATION_H_
 
+#define MAVLINK_USE_CONVENIENCE_FUNCTIONS
+
 #include "conf/conf.h"
 #include <stdbool.h>
 #include "comm.h"

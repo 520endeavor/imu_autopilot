@@ -302,7 +302,8 @@ void optflow_speed_kalman(void)
 	}
 
 	// assign readings from Kalman Filter
-	global_data.velocity.x = flowWorld.x;//;//vx;
+//	global_data.velocity.x = flowWorld.x;//;//vx;
+	global_data.velocity.x = vx;
 	global_data.position.x += global_data.velocity.x * VEL_KF_TIME_STEP_X;
 
 	//---------------------------------------------------
