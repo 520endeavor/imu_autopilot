@@ -413,13 +413,11 @@ void main_loop_quadrotor(void)
 			//float_vect3 opt;
 			static float_vect3 opt_int;
 			static float_vect3 opt_glob;
+			float_vect3 optflow_filtered_world;
 			uint8_t valid = optical_flow_get_dxy(80, &opt_glob.x, &opt_glob.y, &opt_glob.z);
-			if (valid)
-			{
-				opt_int.x += opt_glob.x;
-				opt_int.y += opt_glob.y;
 
-			}
+			opt_glob.x *= global_data.position.z*0.007f;
+			opt_glob.y *= global_data.position.z*0.007f;
 //
 //			uint8_t supersampling = 10;
 //			for (int i = 0; i < supersampling; ++i)
@@ -430,15 +428,6 @@ void main_loop_quadrotor(void)
 //			global_data.sonar_distance /= supersampling;
 //
 //			opt_int.z = valid;
-			static unsigned int i = 0;
-			if (i == 10)
-			{
-				//mavlink_msg_optical_flow_send(mavlink_channel_t chan,                  uint64_t time_usec,       uint8_t sensor_id, int16_t flow_x, int16_t flow_y, float flow_comp_m_x, float flow_comp_m_y, uint8_t quality, float ground_distance);
-				mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, opt_glob.x, opt_glob.y, 0.f, 0.f, opt_glob.z, global_data.sonar_distance_filtered);
-
-				i = 0;
-			}
-			i++;
 			//optical_flow_debug_vect_send();
 			//debug_vect("opt_int", opt_int);
 			optical_flow_start_read(80);
@@ -462,14 +451,30 @@ void main_loop_quadrotor(void)
 					|| global_data.state.position_estimation_mode
 							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_VISUAL_ODOMETRY_GLOBAL_VISION)
 			{
-				optflow_speed_kalman();
+				optflow_speed_kalman(&opt_glob, &optflow_filtered_world);
 			}
+
+			static uint64_t flow_last_valid = 0;
+			if (valid)
+			{
+				uint64_t now = sys_time_clock_get_time_usec();
+				uint64_t deltaT = now - flow_last_valid;
+				flow_last_valid = now;
+				float dT = (float)deltaT / 1000000.f;
+
+				opt_int.x += optflow_filtered_world.x * dT;
+				opt_int.y += optflow_filtered_world.y * dT;
+				opt_int.z += optflow_filtered_world.z * dT;
+				debug_vect("mouseInt", opt_int);
+			}
+
+			mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, 0, 0, optflow_filtered_world.x, optflow_filtered_world.y, opt_glob.z, 0.f);
 
 			// Send the raw sensor/ADC values
 			communication_send_raw_data(loop_start_time);
 
-			float_vect3 yy; yy.x = global_data.yaw_lowpass; yy.y = 0.f; yy.z = 0.f;
-			debug_vect("yaw_low", yy);
+//			float_vect3 yy; yy.x = global_data.yaw_lowpass; yy.y = 0.f; yy.z = 0.f;
+//			debug_vect("yaw_low", yy);
 		}
 		///////////////////////////////////////////////////////////////////////////
 

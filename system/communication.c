@@ -506,100 +506,120 @@ void handle_mavlink_message(mavlink_channel_t chan,
 	break;
 	case MAVLINK_MSG_ID_OPTICAL_FLOW:
 	{
-		mavlink_optical_flow_t flow;
-		mavlink_msg_optical_flow_decode(msg, &flow);
-		global_data.optflow.x = -flow.flow_comp_m_y;//physical mounting direction of flow sensor compensated here
-		global_data.optflow.y = flow.flow_comp_m_x;//physical mounting direction of flow sensor compensated here
-		global_data.optflow.z = flow.quality;
-		global_data.ground_distance = flow.ground_distance;
-
-		if (global_data.optflow.z > 20)
+		if (msg->compid != 200)
 		{
-			global_data.flow_last_valid = sys_time_clock_get_time_usec();
+			mavlink_optical_flow_t flow;
+			mavlink_msg_optical_flow_decode(msg, &flow);
+			global_data.optflow.x = -flow.flow_comp_m_y;//physical mounting direction of flow sensor compensated here
+			global_data.optflow.y = flow.flow_comp_m_x;//physical mounting direction of flow sensor compensated here
+			global_data.optflow.z = flow.quality;
+			global_data.ground_distance = flow.ground_distance;
+
+			if (global_data.optflow.z > 20)
+			{
+				global_data.flow_last_valid = sys_time_clock_get_time_usec();
+			}
+
+			float_vect3 flowQuad, flowWorld;
+			float x_comp =  -global_data.attitude_rate.y * global_data.ground_distance;
+			float y_comp =  global_data.attitude_rate.x * global_data.ground_distance;
+			flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x + x_comp : 0;
+			flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y + y_comp : 0;
+			flowQuad.z = 0;
+			body2navi(&flowQuad, &global_data.attitude, &flowWorld);
+			//debug_vect("flowRAW", flowWorld);
+
+			float flow_distance = global_data.ground_distance;
+
+			static float px = 0.0;
+			static float py = 0.0;
+			float QxLocal = 0.1, QyLocal = 0.1;
+			//float RxLocal = 0.1, RyLocal = 0.1;
+
+			//new prediction model for a kalmanfilter
+			//---------------------------------------------------
+			// Vx Kalman Filter
+			// prediction
+
+			float vx_ = ax * vx;
+			if (global_data.state.fly == FLY_FLYING)
+			{
+				vx_ += bx * (cos(global_data.attitude.z) * global_data.attitude.y + sin(global_data.attitude.z) * global_data.attitude.x);
+			}
+			float pvx_ = ax * pvx + Qx;
+
+			// do an update only if optical flow is good
+			if (global_data.optflow.z > 10.0)
+			{
+				// kalman gain
+				float Kx = pvx_ * ax / (ax * pvx_ * ax + Rx);
+
+				// update step
+				//float xflow = global_data.optflow.x*global_data.position.z*scale;
+				float xflow = flowWorld.x;//flow_distance * flowWorld.x;
+				vx = vx_ + Kx * (xflow - cx * vx_);
+				pvx = (1.0 - Kx * cx) * pvx_;
+			}
+
+			flowWorld.x = vx;
+
+			// Vy Kalman Filter
+			// prediction
+			float vy_ = ay * vy;
+			if (global_data.state.fly == FLY_FLYING)
+			{
+				vy_ += by * (cos(global_data.attitude.z) * global_data.attitude.y - sin(global_data.attitude.z) * global_data.attitude.x);
+			}
+			float pvy_ = ay * pvy + Qy;
+
+			// do an update only if optical flow is good
+			if (global_data.optflow.z > 10.0)
+			{
+				// kalman gain
+				float Ky = pvy_ * ay / (ay * pvy_ * ay + Ry);
+
+				// update step
+				//float yflow = global_data.optflow.y*global_data.position.z*scale;
+				float yflow = flowWorld.y;//flow_distance * flowWorld.y;
+				vy = vy_ + Ky * (yflow - cy * vy_);
+				pvy = (1.0 - Ky * cy) * pvy_;
+			}
+			// otherwise take only the prediction
+			else
+			{
+				// Let speed decay to zero if no measurements are available
+				vy = vy_*0.95;
+				pvy = pvy_;
+			}
+
+			flowWorld.y = vy;
+
+			debug_vect("flowFIL", flowWorld);
+	//		flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x : 0;
+	//		flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y : 0;
+	//		flowQuad.z = 0;
+	//		body2navi(&flowQuad, &global_data.attitude, &flowWorld);
+	//		debug_vect("flowNC", flowWorld);
+
+			//mavlink_msg_optical_flow_send(MAVLINK_COMM_0, flow.time_usec, flow.sensor_id, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.ground_distance);
+
+			static uint64_t px4_flow_last_valid = 0;
+			static int send_count = 0;
+
+			if (send_count == 2)
+			{
+				uint64_t now = sys_time_clock_get_time_usec();
+				uint64_t deltaT = now - px4_flow_last_valid;
+				px4_flow_last_valid = now;
+				float dT = (float)deltaT/1000000.f;
+				static float_vect3 flowInt = {};
+				flowInt.x += flowWorld.x * dT;
+				flowInt.y += flowWorld.y * dT;
+				debug_vect("px4Int", flowInt);
+				send_count = 0;
+			}
+			send_count++;
 		}
-
-		float_vect3 flowQuad, flowWorld;
-		float x_comp =  -global_data.attitude_rate.y * global_data.ground_distance;
-		float y_comp =  global_data.attitude_rate.x * global_data.ground_distance;
-		flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x + x_comp : 0;
-		flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y + y_comp : 0;
-		flowQuad.z = 0;
-		body2navi(&flowQuad, &global_data.attitude, &flowWorld);
-		debug_vect("flowRAW", flowWorld);
-
-		float flow_distance = global_data.ground_distance;
-
-		static float px = 0.0;
-		static float py = 0.0;
-		float QxLocal = 0.1, QyLocal = 0.1;
-		//float RxLocal = 0.1, RyLocal = 0.1;
-
-		//new prediction model for a kalmanfilter
-		//---------------------------------------------------
-		// Vx Kalman Filter
-		// prediction
-
-		float vx_ = ax * vx;
-		if (global_data.state.fly == FLY_FLYING)
-		{
-			vx_ += bx * (cos(global_data.attitude.z) * global_data.attitude.y + sin(global_data.attitude.z) * global_data.attitude.x);
-		}
-		float pvx_ = ax * pvx + Qx;
-
-		// do an update only if optical flow is good
-		if (global_data.optflow.z > 10.0)
-		{
-			// kalman gain
-			float Kx = pvx_ * ax / (ax * pvx_ * ax + Rx);
-
-			// update step
-			//float xflow = global_data.optflow.x*global_data.position.z*scale;
-			float xflow = flowWorld.x;//flow_distance * flowWorld.x;
-			vx = vx_ + Kx * (xflow - cx * vx_);
-			pvx = (1.0 - Kx * cx) * pvx_;
-		}
-
-		flowWorld.x = vx;
-
-		// Vy Kalman Filter
-		// prediction
-		float vy_ = ay * vy;
-		if (global_data.state.fly == FLY_FLYING)
-		{
-			vy_ += by * (cos(global_data.attitude.z) * global_data.attitude.y - sin(global_data.attitude.z) * global_data.attitude.x);
-		}
-		float pvy_ = ay * pvy + Qy;
-
-		// do an update only if optical flow is good
-		if (global_data.optflow.z > 10.0)
-		{
-			// kalman gain
-			float Ky = pvy_ * ay / (ay * pvy_ * ay + Ry);
-
-			// update step
-			//float yflow = global_data.optflow.y*global_data.position.z*scale;
-			float yflow = flowWorld.y;//flow_distance * flowWorld.y;
-			vy = vy_ + Ky * (yflow - cy * vy_);
-			pvy = (1.0 - Ky * cy) * pvy_;
-		}
-		// otherwise take only the prediction
-		else
-		{
-			// Let speed decay to zero if no measurements are available
-			vy = vy_*0.95;
-			pvy = pvy_;
-		}
-
-		flowWorld.y = vy;
-
-		debug_vect("flowFIL", flowWorld);
-//		flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x : 0;
-//		flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y : 0;
-//		flowQuad.z = 0;
-//		body2navi(&flowQuad, &global_data.attitude, &flowWorld);
-//		debug_vect("flowNC", flowWorld);
-
-		//mavlink_msg_optical_flow_send(MAVLINK_COMM_0, flow.time_usec, flow.sensor_id, global_data.optflow.x, global_data.optflow.y, global_data.optflow.z, global_data.ground_distance);
 		break;
 	}
 	case MAVLINK_MSG_ID_PING:

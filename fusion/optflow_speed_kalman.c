@@ -141,7 +141,7 @@ void optflow_speed_kalman_init(void)
 #endif
 }
 
-void optflow_speed_kalman(void)
+void optflow_speed_kalman(float_vect3 *optflow, float_vect3 *optflow_filtered_world)
 {
 	//Transform accelerometer used in all directions
 	//float_vect3 acc_nav;
@@ -251,8 +251,8 @@ void optflow_speed_kalman(void)
 	float y_comp =  global_data.attitude_rate.x * global_data.ground_distance;
 
 
-	flowQuad.x = (global_data.optflow.x == global_data.optflow.x) ? global_data.optflow.x + x_comp : 0;
-	flowQuad.y = (global_data.optflow.y == global_data.optflow.y) ? global_data.optflow.y + y_comp : 0;
+	flowQuad.x = (optflow->x == optflow->x) ? optflow->x + x_comp : 0;
+	flowQuad.y = (optflow->y == optflow->y) ? optflow->y + y_comp : 0;
 	flowQuad.z = 0;
 
 	body2navi(&flowQuad, &global_data.attitude, &flowWorld);
@@ -282,13 +282,13 @@ void optflow_speed_kalman(void)
 	float pvx_ = ax * pvx + Qx;
 
 	// do an update only if optical flow is good
-	if (global_data.optflow.z > 10.0)
+	if (optflow->z > 10.0)
 	{
 		// kalman gain
 		float Kx = pvx_ * ax / (ax * pvx_ * ax + Rx);
 
 		// update step
-		//float xflow = global_data.optflow.x*global_data.position.z*scale;
+		//float xflow = optflow->x*global_data.position.z*scale;
 		float xflow = flowWorld.x;//flow_distance * flowWorld.x;
 		vx = vx_ + Kx * (xflow - cx * vx_);
 		pvx = (1.0 - Kx * cx) * pvx_;
@@ -317,13 +317,13 @@ void optflow_speed_kalman(void)
 	float pvy_ = ay * pvy + Qy;
 
 	// do an update only if optical flow is good
-	if (global_data.optflow.z > 10.0)
+	if (optflow->z > 10.0)
 	{
 		// kalman gain
 		float Ky = pvy_ * ay / (ay * pvy_ * ay + Ry);
 
 		// update step
-		//float yflow = global_data.optflow.y*global_data.position.z*scale;
+		//float yflow = optflow->y*global_data.position.z*scale;
 		float yflow = flowWorld.y;//flow_distance * flowWorld.y;
 		vy = vy_ + Ky * (yflow - cy * vy_);
 		pvy = (1.0 - Ky * cy) * pvy_;
@@ -342,6 +342,14 @@ void optflow_speed_kalman(void)
 
 	global_data.velocity.z = 0.f;
 	global_data.position.z = -global_data.ground_distance;
+
+
+	if (optflow_filtered_world)
+	{
+		optflow_filtered_world->x = flowWorld.x;
+		optflow_filtered_world->y = flowWorld.y;
+		optflow_filtered_world->z = flowWorld.z;
+	}
 
 
 	// initializes x and y to global position
