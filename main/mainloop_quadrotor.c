@@ -417,8 +417,8 @@ void main_loop_quadrotor(void)
 			float_vect3 optflow_filtered_world;
 			uint8_t valid = optical_flow_get_dxy(80, &opt_raw.x, &opt_raw.y, &opt_raw.z);
 
-			opt_scaled.x *= global_data.position.z*0.007f;
-			opt_scaled.y *= global_data.position.z*0.007f;
+			opt_scaled.x = opt_raw.x * global_data.position.z*0.007f;
+			opt_scaled.y = opt_raw.y * global_data.position.z*0.007f;
 //
 //			uint8_t supersampling = 10;
 //			for (int i = 0; i < supersampling; ++i)
