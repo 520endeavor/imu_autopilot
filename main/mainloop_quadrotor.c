@@ -411,13 +411,14 @@ void main_loop_quadrotor(void)
 			control_camera_angle();
 
 			//float_vect3 opt;
-			static float_vect3 opt_int;
-			static float_vect3 opt_glob;
+			static float_vect3 opt_int = {};
+			float_vect3 opt_raw;
+			float_vect3 opt_scaled;
 			float_vect3 optflow_filtered_world;
-			uint8_t valid = optical_flow_get_dxy(80, &opt_glob.x, &opt_glob.y, &opt_glob.z);
+			uint8_t valid = optical_flow_get_dxy(80, &opt_raw.x, &opt_raw.y, &opt_raw.z);
 
-			opt_glob.x *= global_data.position.z*0.007f;
-			opt_glob.y *= global_data.position.z*0.007f;
+			opt_scaled.x *= global_data.position.z*0.007f;
+			opt_scaled.y *= global_data.position.z*0.007f;
 //
 //			uint8_t supersampling = 10;
 //			for (int i = 0; i < supersampling; ++i)
@@ -451,7 +452,7 @@ void main_loop_quadrotor(void)
 					|| global_data.state.position_estimation_mode
 							== POSITION_ESTIMATION_MODE_OPTICAL_FLOW_ULTRASONIC_VISUAL_ODOMETRY_GLOBAL_VISION)
 			{
-				optflow_speed_kalman(&opt_glob, &optflow_filtered_world);
+				optflow_speed_kalman(&opt_scaled, &optflow_filtered_world);
 			}
 
 			static uint64_t flow_last_valid = 0;
@@ -468,7 +469,7 @@ void main_loop_quadrotor(void)
 				debug_vect("mouseInt", opt_int);
 			}
 
-			mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, 0, 0, optflow_filtered_world.x, optflow_filtered_world.y, opt_glob.z, 0.f);
+			mavlink_msg_optical_flow_send(global_data.param[PARAM_SEND_DEBUGCHAN], sys_time_clock_get_unix_loop_start_time(), 0, opt_raw.x, opt_raw.y, optflow_filtered_world.x, optflow_filtered_world.y, opt_raw.z, 0.f);
 
 			// Send the raw sensor/ADC values
 			communication_send_raw_data(loop_start_time);
